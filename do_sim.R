@@ -1,11 +1,16 @@
 library(lavaan)
 
 # Set the working directory
-setwd("C:/Users/User/Documents/GitHub/ModelSelection_Simulation/Functions")
+setwd("e:/Users/perezalo/Documents/ModelSelection_Simulation/Functions")
 
 # Source the relevant functions
 source("MMG-SEM.R")
 source("E_Step.R")
+source("ModelSelection.R")
+source("CHull.R")
+
+setwd("e:/Users/perezalo/Documents/ModelSelection_Simulation")
+setwd("~/GitHub/ModelSelection_Simulation")
 source("DataGeneration.R")
 source("evaluation.R")
 
@@ -16,12 +21,13 @@ source("evaluation.R")
 # Simulation Design
 # Which factors are going to be tested? For now:
 nclus <- c(2, 4) # Number of clusters
-ngroups <- c(12, 24) # Number of groups
+ngroups <- c(12) # Number of groups
 coeff <- c(0.2, 0.3, 0.4) # Initial regression parameters
 N_g <- c(50, 100, 200) # Sample size per groups
 balance <- c("balanced", "unbalanced")
-reliability <- c("high", "low")
-NonInvSize <- c(0.4, 0.6)
+reliability <- c("low")
+NonInvSize <- c(0.6)
+ResRange <- 0.2
 NonInvItems <- 2
 NonInvG <- c(0.50)
 NonInvType <- c("fixed", "random")
@@ -52,10 +58,10 @@ Struc_model <- '
 '
 
 # Get design matrix
-design <- expand.grid(nclus, ngroups, coeff, N_g, balance, reliability, model, NonInvSize, 
-                      NonInvItems, ResRange, NonInvG, NonInvType)
+design <- expand.grid(nclus, ngroups, coeff, N_g, balance, reliability, model, NonInvSize, ResRange,
+                      NonInvItems, NonInvG, NonInvType)
 colnames(design) <- c("nclus", "ngroups", "coeff", "N_g", "balance", "reliability", "model",
-                      "NonInvSize", "NonInvItems", "ResRange", "NonInvG", "NonInvType")
+                      "NonInvSize", "ResRange", "NonInvItems", "NonInvG", "NonInvType")
 
 rownames(design) <- NULL
 rm(balance, coeff, N_g, nclus, ngroups, NonInvG, NonInvItems, NonInvSize, reliability, ResRange)
@@ -65,16 +71,7 @@ do_sim <- function(Design, RowDesign, K){
   # Create matrix to store results
   # 8 columns for: MisClassError, ARI, RMSE, and Relative bias
   # There are 3 columns for RMSE and Relative bias (one for each regression parameter)
-  ResultsRow <- matrix(data = NA, nrow = (K), ncol = 16)
-  colnames(ResultsRow) <- c("MisClass", "ARI", "CorrectClus", "fARI",
-                            "RelBias_B1", "RelBias_B2", "RelBias_B3", "RelBias_B4",
-                            "RMSE_B1", "RMSE_B2", "RMSE_B3", "RMSE_B4", "Global Max %", 
-                            "Exo_var", "Exo_cov", "Decreasing")
-  
-  # Create the original clustering matrix for comparison below
-  original <- create_original(balance = Design[RowDesign, "balance"], 
-                              ngroups = Design[RowDesign, "ngroups"], 
-                              nclus = Design[RowDesign, "nclus"])
+  ResultsRow <- matrix(data = NA, nrow = (K), ncol = 8)
   
   for(k in 1:K){
     #print(""); print(paste("Replication", k, "out of", K)); print("")
@@ -106,26 +103,17 @@ do_sim <- function(Design, RowDesign, K){
     # browser()
     # Run the model 4 times depending on the constraints
     # 1. BOTH RES AND LOAD NON-INV ARE INCLUDED
-    results <- MMGSEM(dat = SimData$SimData, step1model = Measur_model, step2model = Struc_model, 
-                            group = "group", nclus = Design[RowDesign, "nclus"], nstarts = 20, 
-                            printing = F, partition = "hard", NonInv = NonInv, seed = (RowDesign * k), 
-                            constraints = "loadings", allG = T, fit = "factors")
-    
-    # Get global maxima
-    global_maxG_both <- MMGSEM(dat = SimData$SimData, step1model = Measur_model, step2model = Struc_model, 
-                               group = "group", nclus = Design[RowDesign, "nclus"], userStart = original, 
-                               printing = F, nstarts = 1, NonInv = NonInv, constraints = "loadings", 
-                               allG = T, fit = "factors")$loglikelihood
+    results <- ModelSelection(dat = SimData$SimData, step1model = Measur_model, step2model = Struc_model,
+                              group = "group", clusters = c(1,5), nstarts = 20, seed = (RowDesign * k), 
+                              NonInv = NonInv, constraints = "loadings", allG = T, fit = "factors")$Overview
     
     # ---------------------------------------------------------------
     # Evaluate the results
-    Evaluated <- evaluation(beta = resultsG_both$beta_ks, z_gks = resultsG_both$z_gks, original = original, 
-                                  global_max = global_maxG_both, runs_LL = resultsG_both$runs_loglik,
-                                  nclus = Design[RowDesign, "nclus"], coeff = Design[RowDesign, "coeff"],
-                                  psi_gks = resultsG_both$psi_gks)
+    Evaluated <- evaluation(res = results, true_clus = Design[RowDesign, "nclus"])
     
     # Store the results
-    ResultsRow[k, ] <- unlist(c(Evaluated, results$Decreasing))
+    colnames(ResultsRow) <- colnames(Evaluated)
+    ResultsRow[k, ] <- unlist(Evaluated)
   }
   
   # Save the results for each row
@@ -137,26 +125,21 @@ do_sim <- function(Design, RowDesign, K){
 
 # Set working directory for the results
 # Post-IMPS
-setwd("C:/Users/User/OneDrive - Tilburg University/R/Simulation first paper/FinalSim2/Results")
-setwd("C:/Users/perezalo/OneDrive - Tilburg University/R/Simulation first paper/FinalSim2/Results")
+setwd("e:/Users/perezalo/Documents/ModelSelection_Simulation/Results")
+setwd("~/GitHub/ModelSelection_Simulation/Results")
 
 # Create final results matrix 
 # Everything is multiplied by 2 because we run the model twice (including and not including Non-Inv)
-K <- 50 # Number of replications per condition
+K <- 15 # Number of replications per condition
 
-Results_final <- as.data.frame(matrix(data = NA, nrow = nrow(design)*K*6, ncol = 16))
-colnames(Results_final) <- c("MisClass", "ARI", "CorrectClus", "fARI",
-                             "RelBias_B1", "RelBias_B2", "RelBias_B3", "RelBias_B4",
-                             "RMSE_B1", "RMSE_B2", "RMSE_B3", "RMSE_B4", "Global Max %", 
-                             "Exo_var", "Exo_cov", "Decreasing")
-Results_final$Replication <- rep(x = 1:K, times = nrow(design)*6)
-Results_final$Condition <- rep(x = 1:nrow(design), each = K*6)
-Results_final$NonInvIncl <- rep(rep(x = c("both", "bothK", "none", "noneK", "mg_sem", "mg_sem_ign"), each = K), times = nrow(design))
+Results_final <- as.data.frame(matrix(data = NA, nrow = nrow(design)*K, ncol = 8))
+Results_final$Replication <- rep(x = 1:K, times = nrow(design))
+Results_final$Condition <- rep(x = 1:nrow(design), each = K)
 
-system.time(for(i in 1:1){
+system.time(for(i in 1:25){
   cat("\n", "Condition", i, "out of", nrow(design), "\n")
   Results <- do_sim(Design = design, RowDesign = i, K = K)
-  Results_final[(K*6*(i-1)+1):(i*K*6), 1:16] <- Results
+  Results_final[(K*(i-1)+1):(i*K), 1:8] <- Results
 })
 
 save(Results_final, file = "FinalResults.Rdata")
