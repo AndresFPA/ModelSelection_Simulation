@@ -48,17 +48,17 @@ Results_final$`Chull Scree` <- ifelse(test = is.na(Results_final$`Chull Scree`),
 ############################ TABLES - CLUSTER AND PARAMETER RECOVERY ###############################
 ####################################################################################################
 Results_final %>% dplyr::select(`Chull Scree`:AIC_fac) %>% apply(MARGIN = 2, FUN = table)
-
+View(Results_final %>% dplyr::select(`Chull Scree`:AIC_fac) %>% apply(MARGIN = 2, FUN = table))
 
 # Check mean results per simulation factor
-a <- SE_mat %>% group_by(nclus) %>% summarise(across(SE_B1_C1:B4_C2, \(x) qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-b <- SE_mat %>% group_by(ngroups) %>% summarise(across(SE_B1_C1:B4_C2, \(x) qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-c <- SE_mat %>% group_by(N_g) %>% summarise(across(SE_B1_C1:B4_C2, \(x) qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-d <- SE_mat %>% group_by(coeff) %>% summarise(across(SE_B1_C1:B4_C2, \(x) qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-e <- SE_mat %>% group_by(balance) %>% summarise(across(SE_B1_C1:B4_C2, \(x) qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-f <- SE_mat %>% group_by(reliability) %>% summarise(across(SE_B1_C1:B4_C2, \(x) qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-g <- SE_mat %>% group_by(NonInvSize) %>% summarise(across(SE_B1_C1:B4_C2, \(x) qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-h <- SE_mat %>% group_by(NonInvG) %>% summarise(across(SE_B1_C1:B4_C2, \(x) qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
+a <- Results_final %>% group_by(nclus)       %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
+# b <- Results_final %>% group_by(ngroups)     %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
+c <- Results_final %>% group_by(N_g)         %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
+d <- Results_final %>% group_by(coeff)       %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
+e <- Results_final %>% group_by(balance)     %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
+# f <- Results_final %>% group_by(reliability) %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
+# g <- Results_final %>% group_by(NonInvSize)  %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
+# h <- Results_final %>% group_by(NonInvG)     %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
 
 list2 <- list(a, b, c, d, e, f, g, h)
 current <- c()
