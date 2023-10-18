@@ -40,6 +40,9 @@ for (i in ncond) {
   }
 }
 
+# remove uncomplete entries
+Results_final <- Results_final[!is.na(Results_final$`Chull Scree`), ]
+
 # Turn NAs from Chull into FALSE input (Chull was not able to select any model)
 # apply(X = apply(X = Results_final, MARGIN = 2, FUN = is.na), MARGIN = 2, FUN = sum)
 Results_final$`Chull Scree` <- ifelse(test = is.na(Results_final$`Chull Scree`), yes = FALSE, no = Results_final$`Chull Scree`)
@@ -47,18 +50,19 @@ Results_final$`Chull Scree` <- ifelse(test = is.na(Results_final$`Chull Scree`),
 ####################################################################################################
 ############################ TABLES - CLUSTER AND PARAMETER RECOVERY ###############################
 ####################################################################################################
-Results_final %>% dplyr::select(`Chull Scree`:AIC_fac) %>% apply(MARGIN = 2, FUN = table)
+Results_final %>% dplyr::select(`Chull Scree`:AIC_fac) %>% apply(MARGIN = 2, FUN = table)/540
 View(Results_final %>% dplyr::select(`Chull Scree`:AIC_fac) %>% apply(MARGIN = 2, FUN = table))
 
 # Check mean results per simulation factor
-a <- Results_final %>% group_by(nclus)       %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-# b <- Results_final %>% group_by(ngroups)     %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-c <- Results_final %>% group_by(N_g)         %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-d <- Results_final %>% group_by(coeff)       %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-e <- Results_final %>% group_by(balance)     %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-# f <- Results_final %>% group_by(reliability) %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-# g <- Results_final %>% group_by(NonInvSize)  %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
-# h <- Results_final %>% group_by(NonInvG)     %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) # qwraps2::mean_sd(x, denote_sd = "paren", digits = 3)))
+a <- Results_final %>% group_by(nclus)       %>% summarise(across(`Chull Scree`:AIC_fac, \(x) table(x))) 
+# b <- Results_final %>% group_by(ngroups)     %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) 
+c <- Results_final %>% group_by(N_g)         %>% summarise(across(`Chull Scree`:AIC_fac, \(x) table(x))) # qwraps
+d <- Results_final %>% group_by(coeff)       %>% summarise(across(`Chull Scree`:AIC_fac, \(x) table(x))) 
+e <- Results_final %>% group_by(balance)     %>% summarise(across(`Chull Scree`:AIC_fac, \(x) table(x))) 
+# f <- Results_final %>% group_by(reliability) %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) 
+# g <- Results_final %>% group_by(NonInvSize)  %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) 
+# h <- Results_final %>% group_by(NonInvG)     %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) 
+# i <- Results_final %>% group_by(NonInvType)  %>% summarise(across(`Chull Scree`:AIC_fac, \(x) table(x)))
 
 list2 <- list(a, b, c, d, e, f, g, h)
 current <- c()

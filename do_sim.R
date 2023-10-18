@@ -30,7 +30,7 @@ NonInvSize <- c(0.6)
 ResRange <- 0.2
 NonInvItems <- 2
 NonInvG <- c(0.50)
-NonInvType <- c("fixed", "random")
+NonInvType <- c("fixed")
 
 model <- '
     # factor loadings
