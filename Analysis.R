@@ -14,17 +14,17 @@ setwd("~/GitHub/ModelSelection_Simulation/Results")
 
 # Load empty final results matrix
 load("FinalResults.Rdata")
-colnames(Results_final)[1:8] <- c("Chull Scree", "BIC_G", "BIC_N", "AIC", "Chull Scree_fac",
-                                  "BIC_G_fac", "BIC_N_fac", "AIC_fac")
+colnames(Results_final)[1:10] <- c("Chull Scree", "BIC_G", "BIC_N", "AIC", "KIC", "Chull Scree_fac",
+                                  "BIC_G_fac", "BIC_N_fac", "AIC_fac", "KIC_fac")
 load("design.Rdata")
 
 # Merge datasets
 design$Condition <- as.numeric(rownames(design))
 Results_final <- merge(x = design, y = Results_final, by = "Condition")
 col_order <- c("Condition", "Replication", "nclus", "ngroups", "coeff", "N_g",
-               "balance", "reliability", "NonInvSize", "ResRange", "NonInvItems", "NonInvG", 
-               "NonInvType", "Chull Scree", "BIC_G", "BIC_N", "AIC", "Chull Scree_fac",
-               "BIC_G_fac", "BIC_N_fac", "AIC_fac")
+               "balance", "reliability", "sd", "NonInvSize", "ResRange", "NonInvItems", "NonInvG", 
+               "NonInvType", "Chull Scree", "BIC_G", "BIC_N", "AIC", "KIC", "Chull Scree_fac",
+               "BIC_G_fac", "BIC_N_fac", "AIC_fac", "KIC_fac")
 Results_final <- Results_final[, col_order]
 rm(col_order)
 
@@ -36,12 +36,12 @@ for (i in ncond) {
   test <- NA
   test <- try(load(paste0("ResultRow", i, ".Rdata")))
   if(!c(class(test) == "try-error")){
-    Results_final[(K*(i-1)+1):(i*K), 14:21] <- ResultsRow
+    Results_final[(K*(i-1)+1):(i*K), 15:24] <- ResultsRow
   }
 }
 
 # remove uncomplete entries
-Results_final <- Results_final[!is.na(Results_final$`Chull Scree`), ]
+Results_final <- Results_final[!is.na(Results_final$BIC_G), ]
 
 # Turn NAs from Chull into FALSE input (Chull was not able to select any model)
 # apply(X = apply(X = Results_final, MARGIN = 2, FUN = is.na), MARGIN = 2, FUN = sum)
@@ -50,19 +50,54 @@ Results_final$`Chull Scree` <- ifelse(test = is.na(Results_final$`Chull Scree`),
 ####################################################################################################
 ############################ TABLES - CLUSTER AND PARAMETER RECOVERY ###############################
 ####################################################################################################
-Results_final %>% dplyr::select(`Chull Scree`:AIC_fac) %>% apply(MARGIN = 2, FUN = table)/540
+Results_final %>% dplyr::select(`Chull Scree`:KIC_fac) %>% apply(MARGIN = 2, FUN = table)
 View(Results_final %>% dplyr::select(`Chull Scree`:AIC_fac) %>% apply(MARGIN = 2, FUN = table))
 
 # Check mean results per simulation factor
-a <- Results_final %>% group_by(nclus)       %>% summarise(across(`Chull Scree`:AIC_fac, \(x) table(x))) 
-# b <- Results_final %>% group_by(ngroups)     %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) 
-c <- Results_final %>% group_by(N_g)         %>% summarise(across(`Chull Scree`:AIC_fac, \(x) table(x))) # qwraps
-d <- Results_final %>% group_by(coeff)       %>% summarise(across(`Chull Scree`:AIC_fac, \(x) table(x))) 
-e <- Results_final %>% group_by(balance)     %>% summarise(across(`Chull Scree`:AIC_fac, \(x) table(x))) 
-# f <- Results_final %>% group_by(reliability) %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) 
-# g <- Results_final %>% group_by(NonInvSize)  %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) 
-# h <- Results_final %>% group_by(NonInvG)     %>% summarise(across(`Chull Scree`:AIC_fac, \(x) sum(x))) 
-# i <- Results_final %>% group_by(NonInvType)  %>% summarise(across(`Chull Scree`:AIC_fac, \(x) table(x)))
+# Main effects
+Results_final %>% group_by(nclus) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
+  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() %>% round(., 3)
+
+Results_final %>% group_by(N_g) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
+  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() %>% round(., 3)
+
+Results_final %>% group_by(coeff) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
+  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() %>% round(., 3)
+
+Results_final %>% group_by(balance) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
+  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() 
+
+Results_final %>% group_by(sd) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
+  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() %>% round(., 3)
+
+Results_final %>% group_by(sd, nclus) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
+  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() %>% round(., 3)
+
+# By three most important factors
+a <- Results_final %>% group_by(nclus) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
+  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() %>% round(., 3)
+
+a1 <- a %>% dplyr::select(nclus, `Chull Scree`:KIC) %>% pivot_longer(cols = `Chull Scree`:KIC, names_to = "Measure", values_to = "Value")
+a2 <- a %>% dplyr::select(nclus, `Chull Scree_fac`:KIC_fac) %>% pivot_longer(cols = `Chull Scree_fac`:KIC_fac, names_to = "Measure", values_to = "Value")
+
+plot1 <- ggplot(data = a1, aes(x = Measure, y = Value)) + facet_grid(~nclus) +  
+  geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 4)
+
+plot2 <- ggplot(data = a2, aes(x = Measure, y = Value)) + facet_grid(~nclus) +  
+  geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 4)
+
+ggarrange(plotlist = list(plot1, plot2), common.legend = T, legend = "bottom", nrow = 1)
+
+
+
+
+
+
+
+
+
+
+
 
 list2 <- list(a, b, c, d, e, f, g, h)
 current <- c()
