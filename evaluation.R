@@ -15,32 +15,44 @@
 library("combinat")
 library("FARI")
 
-evaluation <- function(res, true_clus){
-  
+evaluation <- function(res, clus){
+  # browser()
   # Create the matrix to be returned
-  evaluated <- matrix(data = NA, nrow = 1, ncol = ncol(res[, -c(1:3, 8:9)]))
-  colnames(evaluated) <- colnames(res[, -c(1:3, 8:9)])
-  evaluated <- as.data.frame(evaluated)
+  res           <- res$Overview
+  rmv.idx       <- which(colnames(res) %in% c("Clusters", "LL", "nrpar", "LL_fac", "nrpar_fac"))
+  evaluated     <- res[1, -rmv.idx, drop = F]
+  evaluated[, ] <- NA
+  evaluated     <- as.data.frame(evaluated)
   
   res <- as.data.frame(res)
   
   # Fill in the matrix: Does the selected model correspond with the true model?
-  evaluated$`Chull Scree` <- ifelse(all(is.na(res$`Chull Scree`)), yes = NA, no = which.max(res$`Chull Scree`) == true_clus)
-  evaluated$BIC_G         <- which.min(res$BIC_G) == true_clus
-  evaluated$BIC_N         <- which.min(res$BIC_N) == true_clus
-  evaluated$AIC           <- which.min(res$AIC) == true_clus
+  # TRUE  = We matched the correct clustering
+  # Under = We under selected
+  # Over  = We over selected
   
-  evaluated$`Chull Scree_fac` <- which.max(res$`Chull Scree_fac`) == true_clus
-  evaluated$BIC_G_fac         <- which.min(res$BIC_G_fac) == true_clus
-  evaluated$BIC_N_fac         <- which.min(res$BIC_N_fac) == true_clus
-  evaluated$AIC_fac           <- which.min(res$AIC_fac) == true_clus
+  evaluated$R2entropy <- res$R2entropy[[clus]]
+  
+  evaluated$Chull <- ifelse(which.max(res$Chull) == clus, TRUE, ifelse(which.min(res$Chull) < clus, "under", "over"))
+  evaluated$BIC_G <- ifelse(which.min(res$BIC_G) == clus, TRUE, ifelse(which.min(res$BIC_G) < clus, "under", "over"))
+  evaluated$BIC_N <- ifelse(which.min(res$BIC_N) == clus, TRUE, ifelse(which.min(res$BIC_N) < clus, "under", "over"))
+  evaluated$AIC   <- ifelse(which.min(res$AIC)   == clus, TRUE, ifelse(which.min(res$AIC)   < clus, "under", "over"))
+  evaluated$AIC3  <- ifelse(which.min(res$AIC3)  == clus, TRUE, ifelse(which.min(res$AIC3)  < clus, "under", "over"))
+  evaluated$ICL   <- ifelse(which.min(res$ICL)   == clus, TRUE, ifelse(which.min(res$ICL)   < clus, "under", "over"))
+  
+  evaluated$Chull_fac <- ifelse(which.max(res$Chull_fac) == clus, TRUE, ifelse(which.min(res$Chull_fac) < clus, "under", "over"))
+  evaluated$BIC_G_fac <- ifelse(which.min(res$BIC_G_fac) == clus, TRUE, ifelse(which.min(res$BIC_G_fac) < clus, "under", "over"))
+  evaluated$BIC_N_fac <- ifelse(which.min(res$BIC_N_fac) == clus, TRUE, ifelse(which.min(res$BIC_N_fac) < clus, "under", "over"))
+  evaluated$AIC_fac   <- ifelse(which.min(res$AIC_fac)   == clus, TRUE, ifelse(which.min(res$AIC_fac)   < clus, "under", "over"))
+  evaluated$AIC3_fac  <- ifelse(which.min(res$AIC3_fac)  == clus, TRUE, ifelse(which.min(res$AIC3_fac)  < clus, "under", "over"))
+  evaluated$ICL_fac   <- ifelse(which.min(res$ICL_fac)   == clus, TRUE, ifelse(which.min(res$ICL_fac)   < clus, "under", "over"))
   
   return(evaluated)
 }
 
 # Function to create the original cluster matrix
 create_original <- function(balance, ngroups, nclus){
-  if (balance == "unbalanced"){
+  if (balance == "unb"){
     unb <- c(rep(0, ngroups), rep(1, (ngroups*.25)/(nclus - 1)))
     original <- matrix(data = c(rep(1, ngroups*.75), rep(unb, nclus - 1)), nrow = ngroups, ncol = nclus)
   } else {

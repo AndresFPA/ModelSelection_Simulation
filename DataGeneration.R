@@ -44,10 +44,10 @@ library(matrixcalc)
 
 
 DataGeneration <- function(model, nclus, ngroups, N_g,
-                           reg_coeff, balance,
-                           reliability, NonInvSize,
-                           NonInvItems = 2, NonInvG, NonInvType,
-                           ResRange, randomVarX = T){
+                           reg_coeff, balance, sd,
+                           reliability = "high", NonInvSize = 0, # The factors below are fixed in this simulation
+                           NonInvItems = 2, NonInvG = 0, NonInvType = "random",
+                           ResRange = 0.2, randomVarX = T){
   
   # Get number of variables
   par_table <- lavaanify(model) # Create parameter table
@@ -67,65 +67,61 @@ DataGeneration <- function(model, nclus, ngroups, N_g,
   # Reorder latent variables
   lat_var <- c(exog, endog)
   
+  # Get a cluster label for each group (GperK)
+  # E.g., If balanced: G = 6, K = 2. GperK = 111222
+  if (balance == "bal"){
+    GperK <- rep(x = 1:nclus, each = (ngroups/nclus))
+  } else if (balance == "unb"){
+    largest <- ngroups*.75; smaller <- ngroups - largest # largest and smaller clusters
+    GperK <- c(rep(x = 1, times = largest), rep(x = 2:nclus, each = smaller/(nclus - 1)))
+  }
+  
   # Give names to the regression parameters (only for better understanding):
-  B1 <- numeric(nclus)
-  B2 <- numeric(nclus)
-  B3 <- numeric(nclus)
-  B4 <- numeric(nclus)
+  B1 <- numeric(ngroups)
+  B2 <- numeric(ngroups)
+  B3 <- numeric(ngroups)
+  B4 <- numeric(ngroups)
   
   # Get regression parameters for each cluster
-  if(nclus == 2){
-    # Cluster 1
-    B1[1] <- 0
-    B2[1] <- reg_coeff
-    B3[1] <- reg_coeff
-    B4[1] <- reg_coeff
-    
-    # Cluster 2
-    B1[2] <- reg_coeff
-    B2[2] <- 0
-    B3[2] <- reg_coeff
-    B4[2] <- reg_coeff
-    
-  } else if (nclus == 4){
-    # Cluster 1
-    B1[1] <- 0
-    B2[1] <- reg_coeff
-    B3[1] <- reg_coeff
-    B4[1] <- reg_coeff
-    
-    # Cluster 2
-    B1[2] <- reg_coeff
-    B2[2] <- 0
-    B3[2] <- reg_coeff
-    B4[2] <- reg_coeff
-    
+  # Cluster 1
+  B1 <- rnorm(n = sum(GperK == 1), mean = 0, sd = sd)
+  B2 <- rnorm(n = sum(GperK == 1), mean = reg_coeff, sd = sd)
+  B3 <- rnorm(n = sum(GperK == 1), mean = reg_coeff, sd = sd)
+  B4 <- rnorm(n = sum(GperK == 1), mean = reg_coeff, sd = sd)
+  
+  # Cluster 2
+  B1 <- c(B1, rnorm(n = sum(GperK == 2), mean = reg_coeff, sd = sd))
+  B2 <- c(B2, rnorm(n = sum(GperK == 2), mean = 0, sd = sd))
+  B3 <- c(B3, rnorm(n = sum(GperK == 2), mean = reg_coeff, sd = sd))
+  B4 <- c(B4, rnorm(n = sum(GperK == 2), mean = reg_coeff, sd = sd))
+  
+  if (nclus == 4){
     # Cluster 3
-    B1[3] <- reg_coeff
-    B2[3] <- reg_coeff
-    B3[3] <- 0
-    B4[3] <- reg_coeff
+    B1 <- c(B1, rnorm(n = sum(GperK == 3), mean = reg_coeff, sd = sd))
+    B2 <- c(B2, rnorm(n = sum(GperK == 3), mean = reg_coeff, sd = sd))
+    B3 <- c(B3, rnorm(n = sum(GperK == 3), mean = 0, sd = sd))
+    B4 <- c(B4, rnorm(n = sum(GperK == 3), mean = reg_coeff, sd = sd))
     
     # Cluster 4
-    B1[4] <- reg_coeff
-    B2[4] <- reg_coeff
-    B3[4] <- reg_coeff
-    B4[4] <- 0
+    B1 <- c(B1, rnorm(n = sum(GperK == 4), mean = reg_coeff, sd = sd))
+    B2 <- c(B2, rnorm(n = sum(GperK == 4), mean = reg_coeff, sd = sd))
+    B3 <- c(B3, rnorm(n = sum(GperK == 4), mean = reg_coeff, sd = sd))
+    B4 <- c(B4, rnorm(n = sum(GperK == 4), mean = 0, sd = sd))
   }
   
   # Generate the structural parameters
   # BETA - Regression parameters
   # beta is cluster-specific. Only nclus matrices needed
-  beta <- array(data = 0, dim = c(m, m, nclus), dimnames = list(lat_var, lat_var))
+  beta <- array(data = 0, dim = c(m, m, ngroups), dimnames = list(lat_var, lat_var))
   colnames(beta) <- rownames(beta) <- lat_var
   
   # Fill in correct regression parameters
-  for(k in 1:nclus){
+  for(g in 1:ngroups){
     # beta
-    beta[endog2, exog[1], k] <- B1[k]
-    beta[endog1, exog[1], k] <- B2[k]
-    beta[endog1, exog[2], k] <- B3[k]
-    beta[endog2, endog1, k] <- B4[k]
+    beta[endog2, exog[1], g] <- B1[g]
+    beta[endog1, exog[1], g] <- B2[g]
+    beta[endog1, exog[2], g] <- B3[g]
+    beta[endog2, endog1, g] <- B4[g]
   }
   
   # psi is group- and cluster-specific. ngroups matrices are needed.
@@ -143,15 +139,6 @@ DataGeneration <- function(model, nclus, ngroups, N_g,
     exog_var1 <- rep(1, times = ngroups) 
     exog_var2 <- rep(1, times = ngroups) 
     exog_cov <- rep(1, times = ngroups) 
-  }
-  
-  # Get a cluster label for each group (GperK)
-  # If balanced, G = 6, K = 2. GperK = 111222
-  if (balance == "balanced"){
-    GperK <- rep(x = 1:nclus, each = (ngroups/nclus))
-  } else if (balance == "unbalanced"){
-    largest <- ngroups*.75; smaller <- ngroups - largest # largest and smaller clusters
-    GperK <- c(rep(x = 1, times = largest), rep(x = 2:nclus, each = smaller/(nclus - 1)))
   }
   
   # Insert the corresponding group- and cluster-specific parts of psi
@@ -178,7 +165,7 @@ DataGeneration <- function(model, nclus, ngroups, N_g,
   cov_eta <- array(data = 0, dim = c(m, m, ngroups), dimnames = list(lat_var, lat_var))
 
   for(g in 1:ngroups){
-    cov_eta[, , g] <- solve(I - beta[, , GperK[g]]) %*% psi_g[, , g] %*% solve(t(I - beta[, , GperK[g]]))
+    cov_eta[, , g] <- solve(I - beta[, , g]) %*% psi_g[, , g] %*% solve(t(I - beta[, , g]))
   }
   
   # Generate the measurement model parameters
