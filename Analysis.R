@@ -6,25 +6,24 @@ library(xtable)
 library(ggpubr)
 library(ggplot2)
 library(ggthemes)
-library(Cairo)
-CairoWin()
+# library(Cairo)
+# CairoWin()
 
 # Set wd
 setwd("~/GitHub/ModelSelection_Simulation/Results")
 
 # Load empty final results matrix
 load("FinalResults.Rdata")
-colnames(Results_final)[1:10] <- c("Chull Scree", "BIC_G", "BIC_N", "AIC", "KIC", "Chull Scree_fac",
-                                  "BIC_G_fac", "BIC_N_fac", "AIC_fac", "KIC_fac")
+colnames(Results_final)[1:13] <- c("entropyR2", "Chull", "BIC_G", "BIC_N", "AIC", "AIC3", "ICL", 
+                                   "Chull_fac", "BIC_G_fac", "BIC_N_fac", "AIC_fac", "AIC3_fac", "ICL_fac")
 load("design.Rdata")
 
 # Merge datasets
 design$Condition <- as.numeric(rownames(design))
 Results_final <- merge(x = design, y = Results_final, by = "Condition")
-col_order <- c("Condition", "Replication", "nclus", "ngroups", "coeff", "N_g",
-               "balance", "reliability", "sd", "NonInvSize", "ResRange", "NonInvItems", "NonInvG", 
-               "NonInvType", "Chull Scree", "BIC_G", "BIC_N", "AIC", "KIC", "Chull Scree_fac",
-               "BIC_G_fac", "BIC_N_fac", "AIC_fac", "KIC_fac")
+col_order <- c("Condition", "Replication", "nclus", "ngroups", "coeff", "N_g", "balance", "sd", 
+               "entropyR2", "Chull", "BIC_G", "BIC_N", "AIC", "AIC3", "ICL", 
+               "Chull_fac", "BIC_G_fac", "BIC_N_fac", "AIC_fac", "AIC3_fac", "ICL_fac")
 Results_final <- Results_final[, col_order]
 rm(col_order)
 
@@ -36,7 +35,7 @@ for (i in ncond) {
   test <- NA
   test <- try(load(paste0("ResultRow", i, ".Rdata")))
   if(!c(class(test) == "try-error")){
-    Results_final[(K*(i-1)+1):(i*K), 15:24] <- ResultsRow
+    Results_final[(K*(i-1)+1):(i*K), 9:21] <- ResultsRow
   }
 }
 
@@ -45,40 +44,103 @@ Results_final <- Results_final[!is.na(Results_final$BIC_G), ]
 
 # Turn NAs from Chull into FALSE input (Chull was not able to select any model)
 # apply(X = apply(X = Results_final, MARGIN = 2, FUN = is.na), MARGIN = 2, FUN = sum)
-Results_final$`Chull Scree` <- ifelse(test = is.na(Results_final$`Chull Scree`), yes = FALSE, no = Results_final$`Chull Scree`)
+# Results_final$`Chull Scree` <- ifelse(test = is.na(Results_final$`Chull Scree`), yes = FALSE, no = Results_final$`Chull Scree`)
+
+# Change conventions, so it is easier to understand
+changed <- Results_final %>% dplyr::select(Chull:ICL_fac) %>% as.matrix() %>% as.data.frame() %>% 
+  mutate(
+    Chull     = recode(Chull, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+    BIC_G     = recode(BIC_G, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+    BIC_N     = recode(BIC_N, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+    AIC       = recode(AIC, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+    AIC3      = recode(AIC3, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+    ICL       = recode(ICL, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+    Chull_fac = recode(Chull_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+    BIC_G_fac = recode(BIC_G_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+    BIC_N_fac = recode(BIC_N_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+    AIC_fac   = recode(AIC_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+    AIC3_fac  = recode(AIC3_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+    ICL_fac   = recode(ICL_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1")
+  )
+
+changed <- lapply(X = changed, FUN = factor, levels = c("-1", "0", "1"), labels = c("Under", "Correct", "Over")) %>% as.data.frame()
+
+Results_final[, 10:21] <- changed
+Results_final[, "entropyR2"] <- as.numeric(Results_final[, "entropyR2"])
 
 ####################################################################################################
 ############################ TABLES - CLUSTER AND PARAMETER RECOVERY ###############################
 ####################################################################################################
-Results_final %>% dplyr::select(`Chull Scree`:KIC_fac) %>% apply(MARGIN = 2, FUN = table)
-View(Results_final %>% dplyr::select(`Chull Scree`:AIC_fac) %>% apply(MARGIN = 2, FUN = table))
-
 # Check mean results per simulation factor
+# Create a function for this
+count_results <- function(data, by, type = "count"){
+  # Extract necessary columns
+  reduced <- data %>% dplyr::select(Chull:ICL_fac)
+
+  #Initialize objects to store
+  counted        <- vector(mode = "list", length = ncol(reduced))
+  names(counted) <- colnames(reduced)
+  final <- c()
+  
+  # Count per column
+  for(i in 1:ncol(reduced)){
+    if(by == "total"){
+      counted[[i]] <- data %>% count(get(colnames(reduced)[i]), .drop = F)
+      # browser()
+      if(type == "relative"){
+        counted[[i]][, ncol(counted[[i]])] <- round(counted[[i]][, ncol(counted[[i]]), drop = F]/sum(counted[[i]][1:3, ncol(counted[[i]]), drop = F]), 3)
+      }
+      # browser()
+      colnames(counted[[i]]) <- c("result", colnames(reduced)[i]) # change colnames
+      ifelse(test = i == 1, yes = final <- counted[[i]][, 1, drop = F], no = final <- final) # for the first iteration, keep the group variable and results column
+      final <- cbind(final, counted[[i]][, ncol(counted[[i]]), drop = F]) # Add the results for each measure
+      
+    } else {
+      counted[[i]] <- data %>% group_by(across(all_of(by))) %>% count(get(colnames(reduced)[i]), .drop = F) # count per measure
+      
+      if(type == "relative"){
+        counted[[i]][, ncol(counted[[i]])] <- round(counted[[i]][, ncol(counted[[i]])]/sum(counted[[i]][1:3, ncol(counted[[i]])]), 3)
+      }
+      
+      colnames(counted[[i]]) <- c(by, "result", colnames(reduced)[i]) # change colnames
+      ifelse(test = i == 1, yes = final <- counted[[i]][, c(seq_len(length(by)), (length(by) + 1))], no = final <- final) # for the first iteration, keep the group variable and results column
+      final <- cbind(final, counted[[i]][, ncol(counted[[i]]), drop = F]) # Add the results for each measure
+    }
+    
+  }
+  return(final)
+}
+
 # Main effects
-Results_final %>% group_by(nclus) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
-  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() %>% round(., 3)
+count_results(data = Results_final, by = "total", type = "relative")
 
-Results_final %>% group_by(N_g) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
-  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() %>% round(., 3)
+count_results(data = Results_final, by = c("nclus"), type = "relative")
 
-Results_final %>% group_by(coeff) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
-  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() %>% round(., 3)
+count_results(data = Results_final, by = c("N_g"), type = "relative")
 
-Results_final %>% group_by(balance) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
-  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() 
+count_results(data = Results_final, by = c("ngroups"), type = "relative")
 
-Results_final %>% group_by(sd) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
-  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() %>% round(., 3)
+count_results(data = Results_final, by = c("coeff"), type = "relative")
 
-Results_final %>% group_by(sd, nclus) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
-  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() %>% round(., 3)
+count_results(data = Results_final, by = c("balance"), type = "relative")
 
-# By three most important factors
-a <- Results_final %>% group_by(nclus) %>% dplyr::select(`Chull Scree`:KIC_fac) %>% 
-  summarise(across(`Chull Scree`:KIC_fac, mean)) %>% as.data.frame() %>% round(., 3)
+count_results(data = Results_final, by = c("sd"), type = "relative")
 
-a1 <- a %>% dplyr::select(nclus, `Chull Scree`:KIC) %>% pivot_longer(cols = `Chull Scree`:KIC, names_to = "Measure", values_to = "Value")
-a2 <- a %>% dplyr::select(nclus, `Chull Scree_fac`:KIC_fac) %>% pivot_longer(cols = `Chull Scree_fac`:KIC_fac, names_to = "Measure", values_to = "Value")
+mean(Results_final$entropyR2)
+View(Results_final %>% group_by(nclus, N_g, ngroups, coeff, balance, sd) %>% summarise(across(entropyR2, mean)))
+
+Results_final %>% group_by(nclus) %>% summarise(across(entropyR2, mean))
+Results_final %>% group_by(N_g) %>% summarise(across(entropyR2, mean))
+Results_final %>% group_by(ngroups) %>% summarise(across(entropyR2, mean))
+Results_final %>% group_by(coeff) %>% summarise(across(entropyR2, mean))
+Results_final %>% group_by(balance) %>% summarise(across(entropyR2, mean))
+Results_final %>% group_by(sd) %>% summarise(across(entropyR2, mean))
+
+# By number of clusters
+a <- count_results(data = Results_final, by = "nclus", type = "relative") %>% filter(result == "Correct")
+
+a1 <- a %>% dplyr::select(nclus, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
+a2 <- a %>% dplyr::select(nclus, Chull_fac:ICL_fac) %>% pivot_longer(cols = Chull_fac:ICL_fac, names_to = "Measure", values_to = "Value")
 
 plot1 <- ggplot(data = a1, aes(x = Measure, y = Value)) + facet_grid(~nclus) +  
   geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 4)
@@ -88,8 +150,19 @@ plot2 <- ggplot(data = a2, aes(x = Measure, y = Value)) + facet_grid(~nclus) +
 
 ggarrange(plotlist = list(plot1, plot2), common.legend = T, legend = "bottom", nrow = 1)
 
+# By sd
+a <- count_results(data = Results_final, by = "sd", type = "relative") %>% filter(result == "Correct")
 
+a1 <- a %>% dplyr::select(sd, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
+a2 <- a %>% dplyr::select(sd, Chull_fac:ICL_fac) %>% pivot_longer(cols = Chull_fac:ICL_fac, names_to = "Measure", values_to = "Value")
 
+plot1 <- ggplot(data = a1, aes(x = Measure, y = Value)) + facet_grid(~sd) +  
+  geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 3)
+
+plot2 <- ggplot(data = a2, aes(x = Measure, y = Value)) + facet_grid(~sd) +  
+  geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 3)
+
+ggarrange(plotlist = list(plot1, plot2), common.legend = T, legend = "bottom", nrow = 1)
 
 
 

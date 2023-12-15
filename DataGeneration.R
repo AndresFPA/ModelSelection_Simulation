@@ -81,7 +81,7 @@ DataGeneration <- function(model, nclus, ngroups, N_g,
   B2 <- numeric(ngroups)
   B3 <- numeric(ngroups)
   B4 <- numeric(ngroups)
-  
+  # browser()
   # Get regression parameters for each cluster
   # Cluster 1
   B1 <- rnorm(n = sum(GperK == 1), mean = 0, sd = sd)
