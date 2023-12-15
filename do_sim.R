@@ -7,10 +7,8 @@ setwd("e:/Users/perezalo/Documents/ModelSelection_Simulation/Functions")
 source("MMG-SEM.R")
 source("E_Step.R")
 source("ModelSelection.R")
-source("CHull.R")
 
 setwd("e:/Users/perezalo/Documents/ModelSelection_Simulation")
-setwd("~/GitHub/ModelSelection_Simulation")
 source("DataGeneration.R")
 source("evaluation.R")
 
@@ -127,17 +125,16 @@ do_sim <- function(Design, RowDesign, K){
 # Set working directory for the results
 # Post-IMPS
 setwd("e:/Users/perezalo/Documents/ModelSelection_Simulation/Results")
-setwd("~/GitHub/ModelSelection_Simulation/Results")
 
 # Create final results matrix 
 # Everything is multiplied by 2 because we run the model twice (including and not including Non-Inv)
-K <- 1 # Number of replications per condition
+K <- 5 # Number of replications per condition
 
 Results_final <- as.data.frame(matrix(data = NA, nrow = nrow(design)*K, ncol = 13))
 Results_final$Replication <- rep(x = 1:K, times = nrow(design))
 Results_final$Condition <- rep(x = 1:nrow(design), each = K)
 
-system.time(for(i in 1:1){
+system.time(for(i in 1:20){
   cat("\n", "Condition", i, "out of", nrow(design), "\n")
   Results <- do_sim(Design = design, RowDesign = i, K = K)
   Results_final[(K*(i-1)+1):(i*K), 1:13] <- Results
