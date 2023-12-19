@@ -11,11 +11,12 @@ source("ModelSelection.R")
 setwd("e:/Users/perezalo/Documents/ModelSelection_Simulation")
 source("DataGeneration.R")
 source("evaluation.R")
+source("evaluationARI.R")
 
 # Simulation Design
 # Which factors are going to be tested? For now:
 nclus   <- c(2, 4)         # Number of clusters
-ngroups <- c(12, 48)       # Number of groups
+ngroups <- c(24, 48)       # Number of groups
 coeff   <- c(0.3, 0.4)     # Initial regression parameters
 N_g     <- c(50, 100, 200) # Sample size per groups
 balance <- c("bal", "unb") # Cluster size
@@ -64,10 +65,18 @@ rm(balance, coeff, N_g, nclus, ngroups, sd) #, NonInvG, NonInvItems, NonInvSize,
 
 # Function for the simulation
 do_sim <- function(Design, RowDesign, K){
+  # Create the original clustering matrix for comparison below
+  original <- create_original(balance = Design[RowDesign, "balance"], 
+                              ngroups = Design[RowDesign, "ngroups"], 
+                              nclus = Design[RowDesign, "nclus"])
+  
   # Create matrix to store results
   # 12 columns for: BIC_G, BIC_N, AIC, AIC3, Chull, ICL 
   # There are 2 columns for each model selection measure (for factors and observed LL)
   ResultsRow <- matrix(data = NA, nrow = (K), ncol = 13)
+  
+  # Create second matrix for the ARI
+  ResultsRowARI <- matrix(data = NA, nrow = (K), ncol = 2)
   
   for(k in 1:K){
     print(paste("Replication", k, "out of", K))
@@ -106,17 +115,27 @@ do_sim <- function(Design, RowDesign, K){
                               group = "group", clusters = c(1, 6), nstarts = 25, seed = (RowDesign * k), 
                               constraints = "loadings", allG = T, fit = "factors")
     
+    # Save results if necessary
+    save(results, file = paste("Fit/Fit", "Row", RowDesign,".Rdata" , sep =""))
+    
     # ---------------------------------------------------------------
     # Evaluate the results
-    Evaluated <- evaluation(res = results, clus = Design[RowDesign, "nclus"])
+    Evaluated    <- evaluation(res = results, clus = Design[RowDesign, "nclus"])
+    EvaluatedARI <- evaluationARI(z_gks    = results$Models[[Design[RowDesign, "nclus"]]]$posteriors,
+                                  original = original,
+                                  nclus    = Design[RowDesign, "nclus"])
     
     # Store the results
     colnames(ResultsRow) <- colnames(Evaluated)
-    ResultsRow[k, ] <- unlist(Evaluated)
+    ResultsRow[k, ]      <- unlist(Evaluated)
+    
+    colnames(ResultsRowARI) <- c("ARI", "CC")
+    ResultsRowARI[k, ] <- unlist(EvaluatedARI)
   }
   
   # Save the results for each row
   save(ResultsRow, file = paste("Result", "Row", RowDesign,".Rdata" , sep =""))
+  save(ResultsRowARI, file = paste("Result", "Row", "ARI", RowDesign,".Rdata" , sep =""))
   
   # Return the final results
   return(ResultsRow)
@@ -128,13 +147,13 @@ setwd("e:/Users/perezalo/Documents/ModelSelection_Simulation/Results")
 
 # Create final results matrix 
 # Everything is multiplied by 2 because we run the model twice (including and not including Non-Inv)
-K <- 5 # Number of replications per condition
+K <- 1 # Number of replications per condition
 
 Results_final <- as.data.frame(matrix(data = NA, nrow = nrow(design)*K, ncol = 13))
 Results_final$Replication <- rep(x = 1:K, times = nrow(design))
 Results_final$Condition <- rep(x = 1:nrow(design), each = K)
 
-system.time(for(i in 1:20){
+system.time(for(i in 1:1){
   cat("\n", "Condition", i, "out of", nrow(design), "\n")
   Results <- do_sim(Design = design, RowDesign = i, K = K)
   Results_final[(K*(i-1)+1):(i*K), 1:13] <- Results
