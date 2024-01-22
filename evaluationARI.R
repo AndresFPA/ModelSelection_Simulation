@@ -80,7 +80,7 @@ evaluationARI <- function(z_gks, original, nclus){
 
 # Function to create the original cluster matrix
 create_original <- function(balance, ngroups, nclus){
-  if (balance == "unbalanced"){
+  if (balance == "unb"){
     unb <- c(rep(0, ngroups), rep(1, (ngroups*.25)/(nclus - 1)))
     original <- matrix(data = c(rep(1, ngroups*.75), rep(unb, nclus - 1)), nrow = ngroups, ncol = nclus)
   } else {

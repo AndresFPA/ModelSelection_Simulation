@@ -63,7 +63,40 @@ colnames(design) <- c("nclus", "ngroups", "coeff", "N_g", "balance", "sd", "mode
 rownames(design) <- NULL
 rm(balance, coeff, N_g, nclus, ngroups, sd) #, NonInvG, NonInvItems, NonInvSize, reliability, ResRange)
 
-# Function for the simulation
+# Functions for the simulation
+# First, to avoid stopping due to errors, create a function with data generation and MMGSEM
+# Errors come from non positive definite cov matrices. This code allows the re-sample
+genDat_analysis <- function(seed, Design, RowDesign, k){
+  # browser()
+  tryCatch({
+    # Set seed per design condition (row) and replication (K)
+    set.seed(seed)
+    
+    # Generate data
+    #SimData <- do.call(what = DataGeneration, args = Design[RowDesign, ])$SimData
+    SimData <- DataGeneration(model     = Design[RowDesign, "model"], 
+                              nclus     = Design[RowDesign, "nclus"], 
+                              ngroups   = Design[RowDesign, "ngroups"], 
+                              reg_coeff = Design[RowDesign, "coeff"], 
+                              N_g       = Design[RowDesign, "N_g"], 
+                              balance   = Design[RowDesign, "balance"], 
+                              sd        = Design[RowDesign, "sd"])
+
+    
+    # Run model selection from 1 to 6 clusters
+    # 1. BOTH RES AND LOAD NON-INV ARE INCLUDED
+    results <- ModelSelection(dat = SimData$SimData, step1model = S1, step2model = S2,
+                              group = "group", clusters = c(1, 6), nstarts = 25, seed = (RowDesign * k), 
+                              constraints = "loadings", allG = T, fit = "factors")
+    
+    # If everything goes right, return results
+    return(results)
+  }, error = function(e){
+    return(NULL)
+  })
+}
+
+# Main simulation function
 do_sim <- function(Design, RowDesign, K){
   # Create the original clustering matrix for comparison below
   original <- create_original(balance = Design[RowDesign, "balance"], 
@@ -81,42 +114,19 @@ do_sim <- function(Design, RowDesign, K){
   for(k in 1:K){
     print(paste("Replication", k, "out of", K))
     
-    # Set seed per design condition (row) and replication (K)
-    set.seed(RowDesign * k)
-    
-    # Generate data
-    #SimData <- do.call(what = DataGeneration, args = Design[RowDesign, ])$SimData
-    SimData <- DataGeneration(model     = Design[RowDesign, "model"], 
-                              nclus     = Design[RowDesign, "nclus"], 
-                              ngroups   = Design[RowDesign, "ngroups"], 
-                              reg_coeff = Design[RowDesign, "coeff"], 
-                              N_g       = Design[RowDesign, "N_g"], 
-                              balance   = Design[RowDesign, "balance"], 
-                              sd        = Design[RowDesign, "sd"])
-                              # reliability = Design[RowDesign, "reliability"], 
-                              # NonInvSize = Design[RowDesign, "NonInvSize"], 
-                              # NonInvItems = Design[RowDesign, "NonInvItems"], 
-                              # ResRange = Design[RowDesign, "ResRange"],
-                              # NonInvG = Design[RowDesign, "NonInvG"],
-                              # NonInvType = Design[RowDesign, "NonInvType"],
-                              # randomVarX = T)
-    
-    #Non-Inv Included?
-    # There is no non-invariance in this simulation
-    # NonInv <- c("F1 =~ x2", "F1 =~ x3",
-    #             "F2 =~ z2", "F2 =~ z3",
-    #             "F3 =~ m2", "F3 =~ m3",
-    #             "F4 =~ y2", "F4 =~ y3")
-    
-    # browser()
-    # Run model selection from 1 to 6 clusters
-    # 1. BOTH RES AND LOAD NON-INV ARE INCLUDED
-    results <- ModelSelection(dat = SimData$SimData, step1model = S1, step2model = S2,
-                              group = "group", clusters = c(1, 6), nstarts = 25, seed = (RowDesign * k), 
-                              constraints = "loadings", allG = T, fit = "factors")
+    # Code to re-sample in case the covariance matrix is non positive definite
+    attempts <- 10
+    for(j in 1:attempts){
+      # Seed will change if there is an error
+      results <- genDat_analysis(seed = (RowDesign * k * j), Design = Design, RowDesign = RowDesign, k = k)
+      if(!is.null(results)){
+        # If there was no error, break the loop and continue
+        break
+      }
+    }
     
     # Save results if necessary
-    save(results, file = paste("Fit/Fit", "Row", RowDesign,".Rdata" , sep =""))
+    save(results, file = paste("Fit/Fit", "Row", RowDesign, "Rep", k, "-", j, ".Rdata" , sep =""))
     
     # ---------------------------------------------------------------
     # Evaluate the results
@@ -147,13 +157,13 @@ setwd("e:/Users/perezalo/Documents/ModelSelection_Simulation/Results")
 
 # Create final results matrix 
 # Everything is multiplied by 2 because we run the model twice (including and not including Non-Inv)
-K <- 1 # Number of replications per condition
+K <- 50 # Number of replications per condition
 
 Results_final <- as.data.frame(matrix(data = NA, nrow = nrow(design)*K, ncol = 13))
 Results_final$Replication <- rep(x = 1:K, times = nrow(design))
 Results_final$Condition <- rep(x = 1:nrow(design), each = K)
 
-system.time(for(i in 1:1){
+system.time(for(i in 1:20){
   cat("\n", "Condition", i, "out of", nrow(design), "\n")
   Results <- do_sim(Design = design, RowDesign = i, K = K)
   Results_final[(K*(i-1)+1):(i*K), 1:13] <- Results
