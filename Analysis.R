@@ -46,26 +46,28 @@ Results_final <- Results_final[!is.na(Results_final$BIC_G), ]
 # apply(X = apply(X = Results_final, MARGIN = 2, FUN = is.na), MARGIN = 2, FUN = sum)
 # Results_final$`Chull Scree` <- ifelse(test = is.na(Results_final$`Chull Scree`), yes = FALSE, no = Results_final$`Chull Scree`)
 
-# Change conventions, so it is easier to understand
-changed <- Results_final %>% dplyr::select(Chull:ICL_fac) %>% as.matrix() %>% as.data.frame() %>% 
-  mutate(
-    Chull     = recode(Chull, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
-    BIC_G     = recode(BIC_G, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
-    BIC_N     = recode(BIC_N, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
-    AIC       = recode(AIC, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
-    AIC3      = recode(AIC3, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
-    ICL       = recode(ICL, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
-    Chull_fac = recode(Chull_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
-    BIC_G_fac = recode(BIC_G_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
-    BIC_N_fac = recode(BIC_N_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
-    AIC_fac   = recode(AIC_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
-    AIC3_fac  = recode(AIC3_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
-    ICL_fac   = recode(ICL_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1")
-  )
+# Transform to factor
+# changed <- Results_final %>% dplyr::select(Chull:ICL_fac) %>% as.matrix() %>% as.data.frame() %>% 
+#   mutate(
+#     Chull     = recode(Chull, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+#     BIC_G     = recode(BIC_G, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+#     BIC_N     = recode(BIC_N, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+#     AIC       = recode(AIC, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+#     AIC3      = recode(AIC3, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+#     ICL       = recode(ICL, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+#     Chull_fac = recode(Chull_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+#     BIC_G_fac = recode(BIC_G_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+#     BIC_N_fac = recode(BIC_N_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+#     AIC_fac   = recode(AIC_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+#     AIC3_fac  = recode(AIC3_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1"),
+#     ICL_fac   = recode(ICL_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1")
+#   )
 
-changed <- lapply(X = changed, FUN = factor, levels = c("-1", "0", "1"), labels = c("Under", "Correct", "Over")) %>% as.data.frame()
+measures <- Results_final %>% dplyr::select(Chull:ICL_fac) %>% as.matrix() %>% as.data.frame()
 
-Results_final[, 10:21] <- changed
+measures <- lapply(X = measures, FUN = factor, levels = c("-1", "0", "1"), labels = c("Under", "Correct", "Over")) %>% as.data.frame()
+
+Results_final[, 10:21] <- measures
 Results_final[, "entropyR2"] <- as.numeric(Results_final[, "entropyR2"])
 
 ####################################################################################################
@@ -81,14 +83,14 @@ count_results <- function(data, by, type = "count"){
   counted        <- vector(mode = "list", length = ncol(reduced))
   names(counted) <- colnames(reduced)
   final <- c()
-  
+  # browser()
   # Count per column
   for(i in 1:ncol(reduced)){
     if(by == "total"){
-      counted[[i]] <- data %>% count(get(colnames(reduced)[i]), .drop = F)
-      # browser()
+      counted[[i]] <- data %>% count(get(colnames(reduced)[i]), .drop = F) %>% filter(!is.na(`get(colnames(reduced)[i])`)) # Count and remove NA
+       
       if(type == "relative"){
-        counted[[i]][, ncol(counted[[i]])] <- round(counted[[i]][, ncol(counted[[i]]), drop = F]/sum(counted[[i]][1:3, ncol(counted[[i]]), drop = F]), 3)
+        counted[[i]][, ncol(counted[[i]])] <- round(counted[[i]][, ncol(counted[[i]]), drop = F]/sum(counted[[i]][, ncol(counted[[i]]), drop = F]), 3)
       }
       # browser()
       colnames(counted[[i]]) <- c("result", colnames(reduced)[i]) # change colnames
@@ -96,8 +98,9 @@ count_results <- function(data, by, type = "count"){
       final <- cbind(final, counted[[i]][, ncol(counted[[i]]), drop = F]) # Add the results for each measure
       
     } else {
-      counted[[i]] <- data %>% group_by(across(all_of(by))) %>% count(get(colnames(reduced)[i]), .drop = F) # count per measure
-      
+      # browser()
+      counted[[i]] <- data %>% group_by(across(all_of(by))) %>% count(get(colnames(reduced)[i]), .drop = F) %>% filter(!is.na(`get(colnames(reduced)[i])`)) # count per measure
+      # browser()
       if(type == "relative"){
         counted[[i]][, ncol(counted[[i]])] <- round(counted[[i]][, ncol(counted[[i]])]/sum(counted[[i]][1:3, ncol(counted[[i]])]), 3)
       }
@@ -110,6 +113,9 @@ count_results <- function(data, by, type = "count"){
   }
   return(final)
 }
+
+# Pre-check to know if there are NAs
+colSums(apply(Results_final, 2, is.na))
 
 # Main effects
 count_results(data = Results_final, by = "total", type = "relative")
