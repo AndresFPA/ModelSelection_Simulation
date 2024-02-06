@@ -132,6 +132,8 @@ count_results(data = Results_final, by = c("balance"), type = "relative")
 
 count_results(data = Results_final, by = c("sd"), type = "relative")
 
+count_results(data = Results_final, by = c("sd", "N_g"), type = "relative")
+
 mean(Results_final$entropyR2)
 View(Results_final %>% group_by(nclus, N_g, ngroups, coeff, balance, sd) %>% summarise(across(entropyR2, mean)))
 
