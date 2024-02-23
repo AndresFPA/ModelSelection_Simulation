@@ -86,7 +86,7 @@ count_results <- function(data, by, type = "count"){
   # browser()
   # Count per column
   for(i in 1:ncol(reduced)){
-    if(by == "total"){
+    if(length(by) == 1 && by == "total"){
       counted[[i]] <- data %>% count(get(colnames(reduced)[i]), .drop = F) %>% filter(!is.na(`get(colnames(reduced)[i])`)) # Count and remove NA
        
       if(type == "relative"){
