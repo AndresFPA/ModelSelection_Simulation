@@ -43,7 +43,7 @@ library(matrixcalc)
 #   # endog1 -> endog2 = B4
 
 
-DataGeneration <- function(model, nclus, ngroups, N_g,
+DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
                            reg_coeff, balance, sd,
                            reliability = "high", NonInvSize = 0, # The factors below are fixed in this simulation
                            NonInvItems = 2, NonInvG = 0, NonInvType = "random",
@@ -259,7 +259,31 @@ DataGeneration <- function(model, nclus, ngroups, N_g,
   SimData <- cbind(SimData, group)
   colnames(SimData) <- c(obs_var, "group")
   
+  ####################################### DATA IS GENERATED ########################################
+  # "STEP 1"
+  # Run CFA on the generated data
+  S1output <- lavaan::cfa(
+    model = step1model, data = centered, group = "group",
+    estimator = "ML", group.equal = "loadings",
+    se = se, test = "none", baseline = FALSE, h1 = FALSE,
+    implied = FALSE, loglik = FALSE,
+    meanstructure = FALSE
+  )
+  
+  # Define some important objects
+  # How many groups?
+  ngroups <- lavaan::lavInspect(S1output, "ngroups")
+  N_gs    <- lavaan::lavInspect(S1output, "nobs") # nobs per group
+  
+  # all estimated model matrices, per group
+  EST       <- lavaan::lavInspect(S1output, "est", add.class = FALSE, add.labels = TRUE)
+  theta_gs  <- lapply(EST, "[[", "theta")
+  lambda_gs <- lapply(EST, "[[", "lambda")
+  cov_eta   <- lapply(EST, "[[", "psi") # cov_eta name refers to Variance of eta (eta being the latent variables)
+  
+  ## "Run" the "second step"
+  
   # Return data
-  return(list(SimData = SimData, NonInvIdx = NonInvIdx, psi_g = psi_g,
-              OrTheta = Theta, cov_eta = cov_eta))
+  # return(list(SimData = SimData, NonInvIdx = NonInvIdx, psi_g = psi_g,
+  #             OrTheta = Theta, cov_eta = cov_eta))
 }
