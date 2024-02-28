@@ -159,11 +159,11 @@ DataGeneration <- function(model, nclus, ngroups, N_g,
   #                                                 (B4[GperK[g]]^2 * endo_var1[g]) + 
   #                                                 (2 * B1[GperK[g]] * B4[GperK[g]] * ((B2[GperK[g]] * exog_var1[g]) + (B3[GperK[g]] * exog_cov[g])))) 
   # }
-  
+  browser()
   # Create the group-cluster parameters of psi_gk
   psi_gk <- matrix(data = list(NA), nrow = ngroups, ncol = nclus)
-  for(g in 1:ngroups){
-    for(k in 1:nclus){
+  for(k in 1:nclus){
+    for(g in 1:ngroups){
       # Insert empty matrix in the corresponding part
       psi_gk[[g, k]] <- matrix(data = diag(m), nrow = m, ncol = m, dimnames = list(lat_var, lat_var))
       
@@ -175,13 +175,13 @@ DataGeneration <- function(model, nclus, ngroups, N_g,
       
       # Insert the group-and-cluster-specific parts
       # For the endogenous variances, start from the total var (endog_var) and subtract the explained variance by the regression
-      psi_g[[g, k]][endog1, endog1] <- endo_var1[g] - ((B2[GperK[g]]^2 * exog_var1[g]) +
-                                                       (B3[GperK[g]]^2 * exog_var2[g]) +
-                                                       (2 * B2[GperK[g]] * B3[GperK[g]] * exog_cov[g]))
+      psi_g[[g, k]][endog1, endog1] <- endo_var1[g] - ((B2[g]^2 * exog_var1[g]) +
+                                                       (B3[g]^2 * exog_var2[g]) +
+                                                       (2 * B2[g] * B3[g] * exog_cov[g]))
       
-      psi_g[[g, k]][endog2, endog2] <- endo_var2[g] - ((B1[GperK[g]]^2 * exog_var1[g]) +
-                                                       (B4[GperK[g]]^2 * endo_var1[g]) +
-                                                       (2 * B1[GperK[g]] * B4[GperK[g]] * ((B2[GperK[g]] * exog_var1[g]) + (B3[GperK[g]] * exog_cov[g]))))
+      psi_g[[g, k]][endog2, endog2] <- endo_var2[g] - ((B1[g]^2 * exog_var1[g]) +
+                                                       (B4[g]^2 * endo_var1[g]) +
+                                                       (2 * B1[g] * B4[g] * ((B2[g] * exog_var1[g]) + (B3[g] * exog_cov[g]))))
     }
   }
   
