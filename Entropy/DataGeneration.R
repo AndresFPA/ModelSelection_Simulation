@@ -142,24 +142,27 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
   }
   
   # Insert the corresponding group- and cluster-specific parts of psi
-  # for(g in 1:ngroups){
-  #   # Insert group-specific parts
-  #   psi_g[exog[1], exog[1], g] <- exog_var1[g] 
-  #   psi_g[exog[2], exog[2], g] <- exog_var2[g] 
-  #   psi_g[exog[1], exog[2], g] <- exog_cov[g] 
-  #   psi_g[exog[2], exog[1], g] <- exog_cov[g] 
-  #   
-  #   # Insert the group-and-cluster-specific parts
-  #   # For the endogenous variances, start from the total var (endog_var) and subtract the explained variance by the regression
-  #   psi_g[endog1, endog1, g] <- endo_var1[g] - ((B2[GperK[g]]^2 * exog_var1[g]) + 
-  #                                                 (B3[GperK[g]]^2 * exog_var2[g]) + 
-  #                                                 (2 * B2[GperK[g]] * B3[GperK[g]] * exog_cov[g])) 
-  #   
-  #   psi_g[endog2, endog2, g] <- endo_var2[g] - ((B1[GperK[g]]^2 * exog_var1[g]) + 
-  #                                                 (B4[GperK[g]]^2 * endo_var1[g]) + 
-  #                                                 (2 * B1[GperK[g]] * B4[GperK[g]] * ((B2[GperK[g]] * exog_var1[g]) + (B3[GperK[g]] * exog_cov[g])))) 
-  # }
-  browser()
+  for(g in 1:ngroups){
+    # Insert group-specific parts
+    psi_g[exog[1], exog[1], g] <- exog_var1[g]
+    psi_g[exog[2], exog[2], g] <- exog_var2[g]
+    psi_g[exog[1], exog[2], g] <- exog_cov[g]
+    psi_g[exog[2], exog[1], g] <- exog_cov[g]
+
+    # Insert the group-and-cluster-specific parts
+    # For the endogenous variances, start from the total var (endog_var) and subtract the explained variance by the regression
+    psi_g[endog1, endog1, g] <- endo_var1[g] - ((B2[GperK[g]]^2 * exog_var1[g]) +
+                                                  (B3[GperK[g]]^2 * exog_var2[g]) +
+                                                  (2 * B2[GperK[g]] * B3[GperK[g]] * exog_cov[g]))
+
+    psi_g[endog2, endog2, g] <- endo_var2[g] - ((B1[GperK[g]]^2 * exog_var1[g]) +
+                                                  (B4[GperK[g]]^2 * endo_var1[g]) +
+                                                  (2 * B1[GperK[g]] * B4[GperK[g]] * ((B2[GperK[g]] * exog_var1[g]) + (B3[GperK[g]] * exog_cov[g]))))
+  }
+  
+  # browser()
+  
+  # The following double-loop is only done for the entropy computation
   # Create the group-cluster parameters of psi_gk
   psi_gk <- matrix(data = list(NA), nrow = ngroups, ncol = nclus)
   for(k in 1:nclus){
@@ -175,11 +178,11 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
       
       # Insert the group-and-cluster-specific parts
       # For the endogenous variances, start from the total var (endog_var) and subtract the explained variance by the regression
-      psi_g[[g, k]][endog1, endog1] <- endo_var1[g] - ((B2[g]^2 * exog_var1[g]) +
+      psi_gk[[g, k]][endog1, endog1] <- endo_var1[g] - ((B2[g]^2 * exog_var1[g]) +
                                                        (B3[g]^2 * exog_var2[g]) +
                                                        (2 * B2[g] * B3[g] * exog_cov[g]))
       
-      psi_g[[g, k]][endog2, endog2] <- endo_var2[g] - ((B1[g]^2 * exog_var1[g]) +
+      psi_gk[[g, k]][endog2, endog2] <- endo_var2[g] - ((B1[g]^2 * exog_var1[g]) +
                                                        (B4[g]^2 * endo_var1[g]) +
                                                        (2 * B1[g] * B4[g] * ((B2[g] * exog_var1[g]) + (B3[g] * exog_cov[g]))))
     }
@@ -210,8 +213,12 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
                                             rep(0, p)), times = m)[1:(p*m)], nrow = p, ncol = m)
   } else if (NonInvType == "random"){
     # Sample random non-invariances
-    NonInvariantLoadings <- sample(x = c(runif(100, min = (loadings - NonInvSize) - .1, max = (loadings - NonInvSize) + .1), 
-                                         runif(100, min = (loadings + NonInvSize) - .1, max = (loadings + NonInvSize) + .1)),
+    # NonInvariantLoadings <- sample(x = c(runif(100, min = (loadings - NonInvSize) - .1, max = (loadings - NonInvSize) + .1), 
+    #                                      runif(100, min = (loadings + NonInvSize) - .1, max = (loadings + NonInvSize) + .1)),
+    #                                size = NonInvItems*4)
+    
+    NonInvariantLoadings <- sample(x = c(runif(100, min = (loadings - NonInvSize), max = (loadings - NonInvSize)), 
+                                         runif(100, min = (loadings + NonInvSize), max = (loadings + NonInvSize))),
                                    size = NonInvItems*4)
     
     # Create a non-invariant lambda matrix
@@ -259,13 +266,16 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
   SimData <- cbind(SimData, group)
   colnames(SimData) <- c(obs_var, "group")
   
-  ####################################### DATA IS GENERATED ########################################
+  ####################################### DATA IS GENERATED #########################################
+  ###################################################################################################
+  ######################################### ESTIMATE MODEL ##########################################
+  browser()
   # "STEP 1"
   # Run CFA on the generated data
   S1output <- lavaan::cfa(
-    model = step1model, data = centered, group = "group",
+    model = step1model, data = SimData, group = "group",
     estimator = "ML", group.equal = "loadings",
-    se = se, test = "none", baseline = FALSE, h1 = FALSE,
+    se = NULL, test = "none", baseline = FALSE, h1 = FALSE,
     implied = FALSE, loglik = FALSE,
     meanstructure = FALSE
   )
@@ -279,9 +289,102 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
   EST       <- lavaan::lavInspect(S1output, "est", add.class = FALSE, add.labels = TRUE)
   theta_gs  <- lapply(EST, "[[", "theta")
   lambda_gs <- lapply(EST, "[[", "lambda")
-  cov_eta   <- lapply(EST, "[[", "psi") # cov_eta name refers to Variance of eta (eta being the latent variables)
+  cov_eta_es   <- lapply(EST, "[[", "psi") # cov_eta name refers to Variance of eta (eta being the latent variables)
   
   ## "Run" the "second step"
+  # Create random partition (NOT SURE IF THIS IS OKAY)
+  cl <- 0
+  while (cl < 1) { # "while loop" to make sure all clusters get at least one group
+    z_gks <- t(replicate(ngroups, sample(x = c(rep(0, (nclus - 1)), 1))))
+    cl <- min(colSums(z_gks))
+  }
+  
+  pi_ks <- colMeans(z_gks)
+  
+  # Estimate loglikelihood using true values as starting values
+  # Initialize matrices to store loglikelihoods
+  loglik_gks  <- matrix(data = 0, nrow = ngroups, ncol = nclus)
+  loglik_gksw <- matrix(data = 0, nrow = ngroups, ncol = nclus)
+  
+  # Initialize Sigma
+  Sigma <- matrix(data = list(NA), nrow = ngroups, ncol = nclus)
+  I <- diag(length(lat_var)) # Identity matrix based on number of latent variables. Used later
+  
+  # Estimate LL
+  for(k in 1:nclus){
+    for(g in 1:ngroups){
+      # Estimate Sigma (factor covariance matrix of step 2)
+      Sigma[[g, k]] <- solve(I - beta[, , g]) %*% psi_gk[[g, k]] %*% solve(t(I - beta[, , g]))
+      Sigma[[g, k]] <- 0.5 * (Sigma[[g, k]] + t(Sigma[[g, k]])) # Force to be symmetric
+      
+      # Estimate the loglikelihood
+      loglik_gk <- lavaan:::lav_mvnorm_loglik_samplestats(
+        sample.mean = rep(0, nrow(cov_eta_es[[1]])),
+        sample.nobs = N_gs[g], # Use original sample size to get the correct loglikelihood
+        # sample.nobs = N_gks[g, k],
+        sample.cov  = cov_eta_es[[g]], # Factor covariance matrix from step 1
+        Mu          = rep(0, nrow(cov_eta_es[[1]])),
+        Sigma       = Sigma[[g, k]] # Factor covariance matrix from step 2
+      )
+    }
+    loglik_gks[g, k] <- loglik_gk
+    loglik_gksw[g, k] <- log(pi_ks[k]) + loglik_gk # weighted loglik
+  }
+  
+  # Get total loglikelihood
+  # First, deal with arithmetic underflow by subtracting the maximum value per group
+  max_gs <- apply(loglik_gksw, 1, max) # Get max value per row
+  minus_max <- sweep(x = loglik_gksw, MARGIN = 1, STATS = max_gs, FUN = "-") # Subtract the max per row
+  exp_loglik <- exp(minus_max) # Exp before summing for total loglikelihood
+  loglik_gsw <- log(apply(exp_loglik, 1, sum)) # Sum exp_loglik per row and then take the log again
+  LL <- sum((loglik_gsw + max_gs)) # Add the maximum again and then sum them all for total loglikelihood
+  
+  # Define E-step for the final z_gks computation
+  EStep <- function(pi_ks, ngroup, nclus, loglik){
+    
+    max_g <-rep(0,ngroup)
+    z_gks <- matrix(NA,nrow = ngroup,ncol = nclus)
+    
+    for(g in 1:ngroup){
+      for(k in 1:nclus){
+        z_gks[g,k] <- log(pi_ks[k])+loglik[g,k]
+      }
+      max_g[g] <- max(z_gks[g,]) # prevent arithmetic underflow 
+      z_gks[g,] <- exp(z_gks[g,]-rep(max_g[g],nclus))
+    }
+    
+    # divide by the rowwise sum of the above calculated part 
+    z_gks <- diag(1/apply(z_gks,1,sum))%*%z_gks
+    # z_gks <- round(z_gks, digits = 16)
+    # z_gks <- diag(1/apply(z_gks,1,sum))%*%z_gks
+    
+    return(z_gks)
+  }
+  
+  z_gks <- EStep(
+    pi_ks = pi_ks, ngroup = ngroups,
+    nclus = nclus, loglik = loglik_gks
+  )
+  
+  # DO THE ENTROPY COMPUTATION
+  # Entropy
+  # Code from github user daob (Oberski, 2019): https://gist.github.com/daob/c2b6d83815ddd57cde3cebfdc2c267b3
+  # p is the prior or posterior probabilities
+  entropy <- function(p) {
+    p <- p[p > sqrt(.Machine$double.eps)] # since Lim_{p->0} p log(p) = 0
+    sum(-p * log(p))
+  }
+  # sum_entropy <- sum(apply(z_gks, 1, entropy)) # Total entropy
+  
+  # Entropy R2
+  entropy.R2 <- function(pi, post) { 
+    error_prior <- entropy(pi) # Class proportions
+    error_post <- mean(apply(post, 1, entropy))
+    R2_entropy <- (error_prior - error_post) / error_prior
+    R2_entropy
+  }
+  
+  R2_entropy <- entropy.R2(pi = pi_ks, post = z_gks)
   
   # Return data
   # return(list(SimData = SimData, NonInvIdx = NonInvIdx, psi_g = psi_g,
