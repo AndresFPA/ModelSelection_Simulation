@@ -151,13 +151,13 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
 
     # Insert the group-and-cluster-specific parts
     # For the endogenous variances, start from the total var (endog_var) and subtract the explained variance by the regression
-    psi_g[endog1, endog1, g] <- endo_var1[g] - ((B2[GperK[g]]^2 * exog_var1[g]) +
-                                                  (B3[GperK[g]]^2 * exog_var2[g]) +
-                                                  (2 * B2[GperK[g]] * B3[GperK[g]] * exog_cov[g]))
+    psi_g[endog1, endog1, g] <- endo_var1[g] - ((B2[g]^2 * exog_var1[g]) +
+                                                  (B3[g]^2 * exog_var2[g]) +
+                                                  (2 * B2[g] * B3[g] * exog_cov[g]))
 
-    psi_g[endog2, endog2, g] <- endo_var2[g] - ((B1[GperK[g]]^2 * exog_var1[g]) +
-                                                  (B4[GperK[g]]^2 * endo_var1[g]) +
-                                                  (2 * B1[GperK[g]] * B4[GperK[g]] * ((B2[GperK[g]] * exog_var1[g]) + (B3[GperK[g]] * exog_cov[g]))))
+    psi_g[endog2, endog2, g] <- endo_var2[g] - ((B1[g]^2 * exog_var1[g]) +
+                                                  (B4[g]^2 * endo_var1[g]) +
+                                                  (2 * B1[g] * B4[g] * ((B2[g] * exog_var1[g]) + (B3[g] * exog_cov[g]))))
   }
   
   # browser()
@@ -293,11 +293,18 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
   
   ## "Run" the "second step"
   # Create random partition (NOT SURE IF THIS IS OKAY)
-  cl <- 0
-  while (cl < 1) { # "while loop" to make sure all clusters get at least one group
-    z_gks <- t(replicate(ngroups, sample(x = c(rep(0, (nclus - 1)), 1))))
-    cl <- min(colSums(z_gks))
-  }
+  # cl <- 0
+  # while (cl < 1) { # "while loop" to make sure all clusters get at least one group
+  #   z_gks <- t(replicate(ngroups, sample(x = c(rep(0, (nclus - 1)), 1))))
+  #   cl <- min(colSums(z_gks))
+  # }
+  # 
+  # pi_ks <- colMeans(z_gks)
+  
+  # Create correct partition
+  z_gks <- create_original(balance = balance, 
+                           ngroups = ngroups, 
+                           nclus = nclus)
   
   pi_ks <- colMeans(z_gks)
   
@@ -326,9 +333,10 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
         Mu          = rep(0, nrow(cov_eta_es[[1]])),
         Sigma       = Sigma[[g, k]] # Factor covariance matrix from step 2
       )
+      
+      loglik_gks[g, k] <- loglik_gk
+      loglik_gksw[g, k] <- log(pi_ks[k]) + loglik_gk # weighted loglik
     }
-    loglik_gks[g, k] <- loglik_gk
-    loglik_gksw[g, k] <- log(pi_ks[k]) + loglik_gk # weighted loglik
   }
   
   # Get total loglikelihood
@@ -389,4 +397,18 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
   # Return data
   # return(list(SimData = SimData, NonInvIdx = NonInvIdx, psi_g = psi_g,
   #             OrTheta = Theta, cov_eta = cov_eta))
+}
+
+
+# Function to create the original cluster matrix
+create_original <- function(balance, ngroups, nclus){
+  if (balance == "unb"){
+    unb <- c(rep(0, ngroups), rep(1, (ngroups*.25)/(nclus - 1)))
+    original <- matrix(data = c(rep(1, ngroups*.75), rep(unb, nclus - 1)), nrow = ngroups, ncol = nclus)
+  } else {
+    data <- c(rep(x = c(rep(1, (ngroups/nclus)), rep(0, ngroups)), times = nclus))
+    data <- data[-c((length(data)-ngroups+1):length(data))]
+    original <- matrix(data = data, nrow = ngroups, ncol = nclus)
+  }
+  return(original)
 }
