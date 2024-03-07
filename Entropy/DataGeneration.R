@@ -43,11 +43,11 @@ library(matrixcalc)
 #   # endog1 -> endog2 = B4
 
 
-DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
-                           reg_coeff, balance, sd,
-                           reliability = "high", NonInvSize = 0, # The factors below are fixed in this simulation
-                           NonInvItems = 2, NonInvG = 0, NonInvType = "random",
-                           ResRange = 0.2, randomVarX = T){
+PopR2Entropy <- function(model, step1model, nclus, ngroups, N_g,
+                         reg_coeff, balance, sd,
+                         reliability = "high", NonInvSize = 0, # The factors below are fixed in this simulation
+                         NonInvItems = 2, NonInvG = 0, NonInvType = "random",
+                         ResRange = 0.2, randomVarX = T){
   
   # Get number of variables
   par_table <- lavaanify(model) # Create parameter table
@@ -77,12 +77,7 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
   }
   
   # Give names to the regression parameters (only for better understanding):
-  B1 <- numeric(ngroups)
-  B2 <- numeric(ngroups)
-  B3 <- numeric(ngroups)
-  B4 <- numeric(ngroups)
-  # browser()
-  # Get regression parameters for each cluster
+  # Get regression parameters for each CORRECT cluster
   # Cluster 1
   B1 <- rnorm(n = sum(GperK == 1), mean = 0, sd = sd)
   B2 <- rnorm(n = sum(GperK == 1), mean = reg_coeff, sd = sd)
@@ -109,9 +104,7 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
     B4 <- c(B4, rnorm(n = sum(GperK == 4), mean = 0, sd = sd))
   }
   
-  # Generate the structural parameters
-  # BETA - Regression parameters
-  # beta is cluster-specific. Only nclus matrices needed
+  # beta is group-specific (small difference within-cluster).
   beta <- array(data = 0, dim = c(m, m, ngroups), dimnames = list(lat_var, lat_var))
   colnames(beta) <- rownames(beta) <- lat_var
   
@@ -122,6 +115,52 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
     beta[endog1, exog[1], g] <- B2[g]
     beta[endog1, exog[2], g] <- B3[g]
     beta[endog2, endog1, g] <- B4[g]
+  }
+  
+  # Get the POPULATION regressions
+  B1_pop <- numeric(nclus)
+  B2_pop <- numeric(nclus)
+  B3_pop <- numeric(nclus)
+  B4_pop <- numeric(nclus)
+  
+  # Cluster 1
+  B1_pop[1] <- 0
+  B2_pop[1] <- reg_coeff
+  B3_pop[1] <- reg_coeff
+  B4_pop[1] <- reg_coeff
+  
+  # Cluster 2
+  B1_pop[2] <- reg_coeff
+  B2_pop[2] <- 0
+  B3_pop[2] <- reg_coeff
+  B4_pop[2] <- reg_coeff
+  
+  if (nclus == 4){
+    # Cluster 3
+    B1_pop[3] <- reg_coeff
+    B2_pop[3] <- reg_coeff
+    B3_pop[3] <- 0
+    B4_pop[3] <- reg_coeff
+    
+    # Cluster 4
+    B1_pop[4] <- reg_coeff
+    B2_pop[4] <- reg_coeff
+    B3_pop[4] <- reg_coeff
+    B4_pop[4] <- 0
+  }
+  
+  # Generate the POPULATION structural parameters
+  # BETA - Regression parameters
+  beta_pop <- array(data = 0, dim = c(m, m, nclus), dimnames = list(lat_var, lat_var))
+  colnames(beta_pop) <- rownames(beta_pop) <- lat_var
+  
+  # Initialize
+  for(k in 1:nclus){
+    # beta
+    beta_pop[endog2, exog[1], k] <- B1_pop[k]
+    beta_pop[endog1, exog[1], k] <- B2_pop[k]
+    beta_pop[endog1, exog[2], k] <- B3_pop[k]
+    beta_pop[endog2, endog1, k] <- B4_pop[k]
   }
   
   # psi is group- and cluster-specific. ngroups matrices are needed.
@@ -178,13 +217,13 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
       
       # Insert the group-and-cluster-specific parts
       # For the endogenous variances, start from the total var (endog_var) and subtract the explained variance by the regression
-      psi_gk[[g, k]][endog1, endog1] <- endo_var1[g] - ((B2[g]^2 * exog_var1[g]) +
-                                                       (B3[g]^2 * exog_var2[g]) +
-                                                       (2 * B2[g] * B3[g] * exog_cov[g]))
+      psi_gk[[g, k]][endog1, endog1] <- endo_var1[g] - ((B2_pop[k]^2 * exog_var1[g]) +
+                                                       (B3_pop[k]^2 * exog_var2[g]) +
+                                                       (2 * B2_pop[k] * B3_pop[k] * exog_cov[g]))
       
-      psi_gk[[g, k]][endog2, endog2] <- endo_var2[g] - ((B1[g]^2 * exog_var1[g]) +
-                                                       (B4[g]^2 * endo_var1[g]) +
-                                                       (2 * B1[g] * B4[g] * ((B2[g] * exog_var1[g]) + (B3[g] * exog_cov[g]))))
+      psi_gk[[g, k]][endog2, endog2] <- endo_var2[g] - ((B1_pop[k]^2 * exog_var1[g]) +
+                                                       (B4_pop[k]^2 * endo_var1[g]) +
+                                                       (2 * B1_pop[k] * B4_pop[k] * ((B2_pop[k] * exog_var1[g]) + (B3_pop[k] * exog_cov[g]))))
     }
   }
   
@@ -255,41 +294,49 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
   
   # Data Generation final
   # For now, mu would be 0 as we are only interested in centered variables
-  SimData <- c()
-  for(g in 1:ngroups){
-    tmp <- mvrnorm(n = N_g, mu = rep(0, p), Sigma = Sigma[, , g], empirical = T)
-    SimData <- rbind(SimData, tmp)
-  }
-  
-  # Add the final labels
-  group <- rep(x = c(1:ngroups), each = N_g) # Group variable
-  SimData <- cbind(SimData, group)
-  colnames(SimData) <- c(obs_var, "group")
+  # SimData <- c()
+  # for(g in 1:ngroups){
+  #   tmp <- mvrnorm(n = N_g, mu = rep(0, p), Sigma = Sigma[, , g], empirical = T)
+  #   SimData <- rbind(SimData, tmp)
+  # }
+  # 
+  # # Add the final labels
+  # group <- rep(x = c(1:ngroups), each = N_g) # Group variable
+  # SimData <- cbind(SimData, group)
+  # colnames(SimData) <- c(obs_var, "group")
   
   ####################################### DATA IS GENERATED #########################################
   ###################################################################################################
   ######################################### ESTIMATE MODEL ##########################################
-  browser()
+  # browser()
   # "STEP 1"
-  # Run CFA on the generated data
-  S1output <- lavaan::cfa(
-    model = step1model, data = SimData, group = "group",
-    estimator = "ML", group.equal = "loadings",
-    se = NULL, test = "none", baseline = FALSE, h1 = FALSE,
-    implied = FALSE, loglik = FALSE,
-    meanstructure = FALSE
-  )
+  # Run CFA on the generated data with true values as starting values
+  # fake_partable <- lavaan::parTable(cfa(
+  #   model = step1model, data = SimData, group = "group",
+  #   estimator = "ML", group.equal = "loadings",
+  #   se = NULL, test = "none", baseline = FALSE, h1 = FALSE,
+  #   implied = FALSE, loglik = FALSE,
+  #   meanstructure = FALSE, do.fit = F
+  # ))
+  # browser()
+  # S1output <- lavaan::cfa(
+  #   model = step1model, data = SimData, group = "group",
+  #   estimator = "ML", group.equal = "loadings",
+  #   se = NULL, test = "none", baseline = FALSE, h1 = FALSE,
+  #   implied = FALSE, loglik = FALSE,
+  #   meanstructure = FALSE, do.fit = F
+  # )
   
   # Define some important objects
   # How many groups?
-  ngroups <- lavaan::lavInspect(S1output, "ngroups")
-  N_gs    <- lavaan::lavInspect(S1output, "nobs") # nobs per group
-  
-  # all estimated model matrices, per group
-  EST       <- lavaan::lavInspect(S1output, "est", add.class = FALSE, add.labels = TRUE)
-  theta_gs  <- lapply(EST, "[[", "theta")
-  lambda_gs <- lapply(EST, "[[", "lambda")
-  cov_eta_es   <- lapply(EST, "[[", "psi") # cov_eta name refers to Variance of eta (eta being the latent variables)
+  # ngroups <- lavaan::lavInspect(S1output, "ngroups")
+  # N_gs    <- lavaan::lavInspect(S1output, "nobs") # nobs per group
+  # 
+  # # all estimated model matrices, per group
+  # EST       <- lavaan::lavInspect(S1output, "est", add.class = FALSE, add.labels = TRUE)
+  # theta_gs  <- lapply(EST, "[[", "theta")
+  # lambda_gs <- lapply(EST, "[[", "lambda")
+  # cov_eta_es   <- lapply(EST, "[[", "psi") # cov_eta name refers to Variance of eta (eta being the latent variables)
   
   ## "Run" the "second step"
   # Create random partition (NOT SURE IF THIS IS OKAY)
@@ -321,16 +368,16 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
   for(k in 1:nclus){
     for(g in 1:ngroups){
       # Estimate Sigma (factor covariance matrix of step 2)
-      Sigma[[g, k]] <- solve(I - beta[, , g]) %*% psi_gk[[g, k]] %*% solve(t(I - beta[, , g]))
+      Sigma[[g, k]] <- solve(I - beta_pop[, , k]) %*% psi_gk[[g, k]] %*% solve(t(I - beta_pop[, , k]))
       Sigma[[g, k]] <- 0.5 * (Sigma[[g, k]] + t(Sigma[[g, k]])) # Force to be symmetric
       
       # Estimate the loglikelihood
       loglik_gk <- lavaan:::lav_mvnorm_loglik_samplestats(
-        sample.mean = rep(0, nrow(cov_eta_es[[1]])),
-        sample.nobs = N_gs[g], # Use original sample size to get the correct loglikelihood
+        sample.mean = rep(0, nrow(cov_eta[, , g])),
+        sample.nobs = N_g, # Use original sample size to get the correct loglikelihood
         # sample.nobs = N_gks[g, k],
-        sample.cov  = cov_eta_es[[g]], # Factor covariance matrix from step 1
-        Mu          = rep(0, nrow(cov_eta_es[[1]])),
+        sample.cov  = cov_eta[, , g], #cov_eta_es[[g]], # Factor covariance matrix from step 1
+        Mu          = rep(0, nrow(cov_eta[, , g])),
         Sigma       = Sigma[[g, k]] # Factor covariance matrix from step 2
       )
       
@@ -395,8 +442,7 @@ DataGeneration <- function(model, step1model, nclus, ngroups, N_g,
   R2_entropy <- entropy.R2(pi = pi_ks, post = z_gks)
   
   # Return data
-  # return(list(SimData = SimData, NonInvIdx = NonInvIdx, psi_g = psi_g,
-  #             OrTheta = Theta, cov_eta = cov_eta))
+  return(R2_entropy)
 }
 
 
