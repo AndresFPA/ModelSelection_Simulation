@@ -1,3 +1,5 @@
+library(lavaan)
+
 # Simulation Design
 # Which factors are going to be tested? For now:
 nclus   <- c(2, 4)         # Number of clusters
@@ -60,8 +62,8 @@ R2 <- vector(mode = "list", length = 72)
 set.seed(1)
 for(i in 1:72){
   print(i)
-  R2[[i]] <- numeric(50)
-  for(k in 1:50){
+  R2[[i]] <- numeric(200)
+  for(k in 1:200){
     print(k)
     R2[[i]][k] <- PopR2Entropy(model      = model, 
                                step1model = S1, 
@@ -77,3 +79,23 @@ for(i in 1:72){
 mean(R2)
 
 lapply(X = R2, FUN = mean)
+
+summary(unlist(lapply(X = R2, FUN = mean)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

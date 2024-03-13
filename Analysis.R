@@ -120,17 +120,12 @@ colSums(apply(Results_final, 2, is.na))
 # Main effects
 count_results(data = Results_final, by = "total", type = "relative")
 
-count_results(data = Results_final, by = c("nclus"), type = "relative")
-
-count_results(data = Results_final, by = c("N_g"), type = "relative")
-
-count_results(data = Results_final, by = c("ngroups"), type = "relative")
-
-count_results(data = Results_final, by = c("coeff"), type = "relative")
-
-count_results(data = Results_final, by = c("balance"), type = "relative")
-
-count_results(data = Results_final, by = c("sd"), type = "relative")
+K_res   <- count_results(data = Results_final, by = c("nclus"), type = "relative")
+N_res   <- count_results(data = Results_final, by = c("N_g"), type = "relative")
+G_res   <- count_results(data = Results_final, by = c("ngroups"), type = "relative")
+B_res   <- count_results(data = Results_final, by = c("coeff"), type = "relative")
+Bal_res <- count_results(data = Results_final, by = c("balance"), type = "relative")
+sd_res  <- count_results(data = Results_final, by = c("sd"), type = "relative")
 
 count_results(data = Results_final, by = c("sd", "N_g"), type = "relative")
 
@@ -144,6 +139,7 @@ Results_final %>% group_by(coeff) %>% summarise(across(entropyR2, mean))
 Results_final %>% group_by(balance) %>% summarise(across(entropyR2, mean))
 Results_final %>% group_by(sd) %>% summarise(across(entropyR2, mean))
 
+# BAR GRAPHS
 # By number of clusters
 a <- count_results(data = Results_final, by = "nclus", type = "relative") %>% filter(result == "Correct")
 
@@ -172,13 +168,36 @@ plot2 <- ggplot(data = a2, aes(x = Measure, y = Value)) + facet_grid(~sd) +
 
 ggarrange(plotlist = list(plot1, plot2), common.legend = T, legend = "bottom", nrow = 1)
 
+# HEATMAP
+a <- count_results(data = Results_final, by = c("sd", "N_g", "nclus"), type = "relative") %>% filter(result == "Correct")
+
+a1 <- a %>% dplyr::select(N_g, sd, nclus, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
+
+plot <- ggplot(data = a1, aes(x = sd, y = Measure)) + facet_grid(nclus~N_g) +
+  geom_tile(aes(fill = Value)) + geom_text(aes(label = Value)) + 
+  scale_fill_gradient(low = "yellow", high = "red") + 
+  scale_x_continuous(sec.axis = sec_axis(~ . , name = "Sample Size", breaks = NULL, labels = NULL)) # +
+  # scale_y_discrete(sec.axis = sec_axis(~ . , name = "Number of clusters", breaks = NULL, labels = NULL))
+
+plot
 
 
 
 
+# TABLES
+K_res   <- count_results(data = Results_final, by = c("nclus"), type = "relative")   %>% select(nclus:ICL)
+N_res   <- count_results(data = Results_final, by = c("N_g"), type = "relative")     %>% select(N_g:ICL)
+G_res   <- count_results(data = Results_final, by = c("ngroups"), type = "relative") %>% select(ngroups:ICL)
+B_res   <- count_results(data = Results_final, by = c("coeff"), type = "relative")   %>% select(coeff:ICL)
+Bal_res <- count_results(data = Results_final, by = c("balance"), type = "relative") %>% select(balance:ICL)
+sd_res  <- count_results(data = Results_final, by = c("sd"), type = "relative")      %>% select(sd:ICL)
 
-
-
+K_res   <- data.table::transpose(K_res, keep.names = "rn")
+N_res   <- data.table::transpose(N_res, keep.names = "rn")
+G_res   <- data.table::transpose(G_res, keep.names = "rn")
+B_res   <- data.table::transpose(B_res, keep.names = "rn")
+Bal_res <- data.table::transpose(Bal_res, keep.names = "rn")
+sd_res  <- data.table::transpose(sd_res, keep.names = "rn")
 
 list2 <- list(a, b, c, d, e, f, g, h)
 current <- c()
