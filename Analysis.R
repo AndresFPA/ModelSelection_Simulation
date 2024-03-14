@@ -192,118 +192,35 @@ B_res   <- count_results(data = Results_final, by = c("coeff"), type = "relative
 Bal_res <- count_results(data = Results_final, by = c("balance"), type = "relative") %>% select(balance:ICL)
 sd_res  <- count_results(data = Results_final, by = c("sd"), type = "relative")      %>% select(sd:ICL)
 
-K_res   <- data.table::transpose(K_res, keep.names = "rn")
-N_res   <- data.table::transpose(N_res, keep.names = "rn")
-G_res   <- data.table::transpose(G_res, keep.names = "rn")
-B_res   <- data.table::transpose(B_res, keep.names = "rn")
-Bal_res <- data.table::transpose(Bal_res, keep.names = "rn")
-sd_res  <- data.table::transpose(sd_res, keep.names = "rn")
+K_res   <- K_res %>% 
+  pivot_longer(cols = -c(nclus, result), names_to = "metric", values_to = "value") %>%
+  pivot_wider(names_from = nclus, values_from = value, names_prefix = "nclus") %>% 
+  relocate(metric) %>% arrange(metric)
+N_res   <- N_res %>% 
+  pivot_longer(cols = -c(N_g, result), names_to = "metric", values_to = "value") %>%
+  pivot_wider(names_from = N_g, values_from = value, names_prefix = "N_g") %>% 
+  relocate(metric) %>% arrange(metric) %>% select(contains("N_g"))
+G_res   <- G_res %>% 
+  pivot_longer(cols = -c(ngroups, result), names_to = "metric", values_to = "value") %>%
+  pivot_wider(names_from = ngroups, values_from = value, names_prefix = "ngroups") %>% 
+  relocate(metric) %>% arrange(metric) %>% select(contains("ngroups"))
+B_res   <- B_res %>% 
+  pivot_longer(cols = -c(coeff, result), names_to = "metric", values_to = "value") %>%
+  pivot_wider(names_from = coeff, values_from = value, names_prefix = "coeff") %>% 
+  relocate(metric) %>% arrange(metric) %>% select(contains("coeff"))
+Bal_res <- Bal_res %>% 
+  pivot_longer(cols = -c(balance, result), names_to = "metric", values_to = "value") %>%
+  pivot_wider(names_from = balance, values_from = value, names_prefix = "balance") %>% 
+  relocate(metric) %>% arrange(metric) %>% select(contains("balance"))
+sd_res  <- sd_res %>% 
+  pivot_longer(cols = -c(sd, result), names_to = "metric", values_to = "value") %>%
+  pivot_wider(names_from = sd, values_from = value, names_prefix = "sd") %>% 
+  relocate(metric) %>% arrange(metric) %>% select(contains("sd"))
 
-list2 <- list(a, b, c, d, e, f, g, h)
-current <- c()
+final <- cbind(K_res, N_res, G_res, B_res, Bal_res, sd_res)
+xtable(final)
 
-for(i in 1:length(list2)){
-  tmp <- list2[[i]]
-  tmp$Factor <- colnames(tmp)[1]
-  colnames(tmp)[1] <- c("Level")
-  tmp$Level <- as.factor(tmp$Level)
-  tmp <- tmp[, c(1, ncol(tmp), c(2:(ncol(tmp) - 1)))]
-  current <- rbind(current, tmp)
-}
-
-rm(a, b, c, d, e, f, g, h)
-current <- current[, c("Factor", "Level", "ARI", "CorrectClus", "fARI", 
-                       "RMSE_B1", "RMSE_B2", "RMSE_B3", "RMSE_B4")]
-# for_paper <- current %>% pivot_wider(names_from = `Non-inv Included`, values_from = c(ARI:RMSE_C)) %>% 
-#   dplyr::select(Factor, Level, ARI_yes, CorrectClus_yes, fARI_yes, RMSE_A_yes, RMSE_B_yes, RMSE_C_yes)
-for_paper <- current
-colnames(for_paper) <- c("Factor", "Level", "ARI", "CorrectClus", "fARI", "beta1", "beta2", "beta3", "beta4")
-
-# Re-organize table
-# Get row indices of each factor
-factors <- unique(for_paper$Factor)
-for(i in 1:length(factors)){ 
-  assign(x = paste0("rn_", factors[i]), value = which(for_paper$Factor == factors[i]))
-}
-
-for_paper <- for_paper[c(rn_coeff, rn_ngroups, rn_N_g, rn_nclus,
-                         rn_balance, rn_reliability, rn_NonInvG,
-                         rn_NonInvSize), ]
-
-rm(rn_coeff, rn_ngroups, rn_N_g, rn_nclus, rn_balance, rn_reliability, rn_NonInvG, rn_NonInvSize)
-
-# Add total - Cluster
-yes_tot <- t(apply(Results_final[, c("ARI", "CorrectClus", "fARI")], 2, qwraps2::mean_sd, denote_sd = "paren", digits = 3))
-yes_tot <- as.data.frame(yes_tot)
-yes_tot$Factor <- "Total"; yes_tot$Level <- ""
-yes_tot <- yes_tot[, c("Factor", "Level", "ARI", "CorrectClus", "fARI")]
-
-#Final - Cluster
-for_paper_clus <- for_paper[, c("Factor", "Level", "ARI", "CorrectClus", "fARI")]
-for_paper_clus <- rbind(for_paper_clus, yes_tot)
-print(xtable(for_paper_clus, digits = 3), include.rownames = F)
-
-rm(yes_tot, tmp)
-
-# Add total - Parameter
-yes_tot <- t(apply(Results_final[, c("RMSE_B1", "RMSE_B2", "RMSE_B3", "RMSE_B4")], 2, qwraps2::mean_sd, denote_sd = "paren", digits = 3))
-yes_tot <- as.data.frame(yes_tot)
-yes_tot$Factor <- "Total"; yes_tot$Level <- ""
-yes_tot <- yes_tot[, c("Factor", "Level", "RMSE_B1", "RMSE_B2", "RMSE_B3", "RMSE_B4")]
-colnames(yes_tot) <- c("Factor", "Level", "beta1", "beta2", "beta3", "beta4")
-
-#Final - Parameter
-for_paper_par <- for_paper[, c("Factor", "Level", "beta1", "beta2", "beta3", "beta4")]
-for_paper_par <- rbind(for_paper_par, yes_tot)
-# for_paper_par[, c("beta1", "beta2", "beta3", "beta4")] <- round(for_paper_par[, c("beta1", "beta2", "beta3", "beta4")], digits = 3)
-
-rm(yes_tot)
-
-print(xtable(for_paper_par, digits = 3), include.rownames = F)
-
-####################################################################################################
-##################################### TABLE 3 - GLOBAL MAXIMA ######################################
-####################################################################################################
-Global <- Results_final
-Global$`Global Max %` <- ifelse(test = Global$`Global Max %` == 0, yes = 0, no = 1)
-
-# Check mean results per simulation factor
-a <- Global %>% group_by(NonInvIncl, nclus) %>% summarise(across(MisClass:Exo_var, mean))
-b <- Global %>% group_by(NonInvIncl, ngroups) %>% summarise(across(MisClass:Exo_var, mean))
-c <- Global %>% group_by(NonInvIncl, N_g) %>% summarise(across(MisClass:Exo_var, mean))
-d <- Global %>% group_by(NonInvIncl, coeff) %>% summarise(across(MisClass:Exo_var, mean))
-e <- Global %>% group_by(NonInvIncl, balance) %>% summarise(across(MisClass:Exo_var, mean))
-f <- Global %>% group_by(NonInvIncl, reliability) %>% summarise(across(MisClass:Exo_var, mean))
-g <- Global %>% group_by(NonInvIncl, NonInvSize) %>% summarise(across(MisClass:Exo_var, mean))
-h <- Global %>% group_by(NonInvIncl, NonInvG) %>% summarise(across(MisClass:Exo_var, mean))
-
-list2 <- list(a, b, c, d, e, f, g, h)
-current <- c()
-
-for(i in 1:length(list2)){
-  tmp <- list2[[i]]
-  tmp$Factor <- colnames(tmp)[2]
-  colnames(tmp)[1:2] <- c("Non-inv Included", "Level")
-  tmp$Level <- as.factor(tmp$Level)
-  tmp <- tmp[, c(1, ncol(tmp), c(2:(ncol(tmp) - 1)))]
-  current <- rbind(current, tmp)
-}
-
-rm(a, b, c, d, e, f, g, h)
-
-Global2 <- current[, c("Factor", "Level", "Global Max %")]
-1 - mean(Global2$`Global Max %`)
-mean(Global$`Global Max %`)
-
-Local <- Global %>% filter(`Global Max %` == 0) %>% select(Condition:NonInvG, `Global Max %`)
-Local %>% count(nclus)
-Local %>% count(ngroups)
-Local %>% count(N_g)
-Local %>% count(coeff)
-Local %>% count(balance)
-Local %>% count(reliability)
-Local %>% count(NonInvSize)
-Local %>% count(NonInvG)
+count_results(data = Results_final, by = "total", type = "relative") %>% select(result:ICL)
 
 ####################################################################################################
 ######################################## COR fARI - RMSE ###########################################
