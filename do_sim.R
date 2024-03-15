@@ -66,7 +66,7 @@ rm(balance, coeff, N_g, nclus, ngroups, sd) #, NonInvG, NonInvItems, NonInvSize,
 # Functions for the simulation
 # First, to avoid stopping due to errors, create a function with data generation and MMGSEM
 # Errors come from non positive definite cov matrices. This code allows the re-sample
-genDat_analysis <- function(seed, Design, RowDesign, k){
+genDat_analysis <- function(seed, Design, RowDesign, k, NonInv){
   # browser()
   tryCatch({
     # Set seed per design condition (row) and replication (K)
@@ -87,7 +87,7 @@ genDat_analysis <- function(seed, Design, RowDesign, k){
     # 1. BOTH RES AND LOAD NON-INV ARE INCLUDED
     results <- ModelSelection(dat = SimData$SimData, step1model = S1, step2model = S2,
                               group = "group", clusters = c(1, 6), nstarts = 25, seed = (RowDesign * k), 
-                              constraints = "loadings", allG = T, fit = "factors")
+                              constraints = "loadings", allG = T, fit = "factors", NonInv = NonInv)
     
     # If everything goes right, return results
     return(results)
@@ -107,9 +107,17 @@ do_sim <- function(Design, RowDesign, K){
   # 12 columns for: BIC_G, BIC_N, AIC, AIC3, Chull, ICL 
   # There are 2 columns for each model selection measure (for factors and observed LL)
   ResultsRow <- matrix(data = NA, nrow = (K), ncol = 13)
+  ResultsRow_ignored <- matrix(data = NA, nrow = (K), ncol = 13)
   
   # Create second matrix for the ARI
   ResultsRowARI <- matrix(data = NA, nrow = (K), ncol = 2)
+  ResultsRowARI_ignored <- matrix(data = NA, nrow = (K), ncol = 2)
+  
+  # Define non-invariances
+  NonInv <- c("F1 =~ x2", "F1 =~ x3",
+              "F2 =~ z2", "F2 =~ z3",
+              "F3 =~ m2", "F3 =~ m3",
+              "F4 =~ y2", "F4 =~ y3")
   
   for(k in 1:K){
     print(paste("Replication", k, "out of", K))
@@ -118,35 +126,51 @@ do_sim <- function(Design, RowDesign, K){
     attempts <- 10
     for(j in 1:attempts){
       # Seed will change if there is an error
-      ctimes <- system.time(results <- genDat_analysis(seed = (RowDesign * k * j), Design = Design, RowDesign = RowDesign, k = k)) 
+      ctimes <- system.time(results <- genDat_analysis(seed = (RowDesign * k * j), Design = Design, RowDesign = RowDesign, k = k, NonInv = NonInv)) 
+      ctimes_ignored <- system.time(results_ignored <- genDat_analysis(seed = (RowDesign * k * j), Design = Design, RowDesign = RowDesign, k = k, NonInv = NULL)) 
       if(!is.null(results)){
         # If there was no error, break the loop and continue
         break
       }
     }
     
-    # Save results if necessary
-    results <- results$Overview
-    save(results, file = paste("Fit/Fit", "Row", RowDesign, "Rep", k, "-", j, ".Rdata" , sep =""))
+    # # Save computation times
+    # save(ctimes, file = paste("Times/Time", "Row", RowDesign, "Rep", k, ".Rdata", sep = ""))
+    # save(ctimes_ignored, file = paste("Times/TimeIgn", "Row", RowDesign, "Rep", k, ".Rdata", sep = ""))
+    # 
+    # # Save results if necessary
+    # results <- results$Overview
+    # save(results, file = paste("Fit/Fit", "Row", RowDesign, "Rep", k, "-", j, ".Rdata" , sep = ""))
+    # 
+    # results_ignored <- results_ignored$Overview
+    # save(results_ignored, file = paste("Fit/FitIgn", "Row", RowDesign, "Rep", k, "-", j, ".Rdata" , sep = ""))
     
     # ---------------------------------------------------------------
     # Evaluate the results
-    Evaluated    <- evaluation(res = results, clus = Design[RowDesign, "nclus"])
-    EvaluatedARI <- evaluationARI(z_gks    = results$Models[[Design[RowDesign, "nclus"]]]$posteriors,
-                                  original = original,
-                                  nclus    = Design[RowDesign, "nclus"])
+    Evaluated            <- evaluation(res = results, clus = Design[RowDesign, "nclus"])
+    Evaluated_ignored    <- evaluation(res = results, clus = Design[RowDesign, "nclus"])
+    
+    EvaluatedARI         <- evaluationARI(z_gks    = results$Models[[Design[RowDesign, "nclus"]]]$posteriors,
+                                          original = original,
+                                          nclus    = Design[RowDesign, "nclus"])
+    EvaluatedARI_ignored <- evaluationARI(z_gks    = results$Models[[Design[RowDesign, "nclus"]]]$posteriors,
+                                          original = original,
+                                          nclus    = Design[RowDesign, "nclus"])
     
     # Store the results
-    colnames(ResultsRow) <- colnames(Evaluated)
-    ResultsRow[k, ]      <- unlist(Evaluated)
+    colnames(ResultsRow) <- colnames(Evaluated); colnames(ResultsRow_ignored) <- colnames(Evaluated_ignored)
+    ResultsRow[k, ]      <- unlist(Evaluated);   ResultsRow_ignored[k, ]      <- unlist(Evaluated_ignored)
     
-    colnames(ResultsRowARI) <- c("ARI", "CC")
-    ResultsRowARI[k, ] <- unlist(EvaluatedARI)
+    colnames(ResultsRowARI) <- c("ARI", "CC");  colnames(ResultsRowARI_ignored) <- c("ARI", "CC")
+    ResultsRowARI[k, ] <- unlist(EvaluatedARI); ResultsRowARI_ignored[k, ] <- unlist(EvaluatedARI_ignored)
   }
   
   # Save the results for each row
   save(ResultsRow, file = paste("Result", "Row", RowDesign,".Rdata" , sep =""))
+  save(ResultsRow_ignored, file = paste("ResultIgn", "Row", RowDesign,".Rdata" , sep =""))
+  
   save(ResultsRowARI, file = paste("Result", "Row", "ARI", RowDesign,".Rdata" , sep =""))
+  save(ResultsRowARI_ignored, file = paste("Result_Ign", "Row", "ARI", RowDesign,".Rdata" , sep =""))
   
   # Return the final results
   return(ResultsRow)
@@ -158,13 +182,13 @@ setwd("e:/Users/perezalo/Documents/ModelSelection_Simulation/Results")
 
 # Create final results matrix 
 # Everything is multiplied by 2 because we run the model twice (including and not including Non-Inv)
-K <- 50 # Number of replications per condition
+K <- 1 # Number of replications per condition
 
 Results_final <- as.data.frame(matrix(data = NA, nrow = nrow(design)*K, ncol = 13))
 Results_final$Replication <- rep(x = 1:K, times = nrow(design))
 Results_final$Condition <- rep(x = 1:nrow(design), each = K)
 
-system.time(for(i in 1:20){
+system.time(for(i in 1:1){
   cat("\n", "Condition", i, "out of", nrow(design), "\n")
   Results <- do_sim(Design = design, RowDesign = i, K = K)
   Results_final[(K*(i-1)+1):(i*K), 1:13] <- Results
