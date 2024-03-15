@@ -33,14 +33,14 @@ evaluation <- function(res, clus){
   
   evaluated$R2entropy <- res$R2entropy[[clus]]
   
-  evaluated$Chull <- ifelse(which.max(res$Chull) == clus, 0, ifelse(which.min(res$Chull) < clus, -1, 1))
+  evaluated$Chull <- ifelse(all(is.na(res$Chull)), NA, ifelse(which.max(res$Chull) == clus, 0, ifelse(which.min(res$Chull) < clus, -1, 1)))
   evaluated$BIC_G <- ifelse(which.min(res$BIC_G) == clus, 0, ifelse(which.min(res$BIC_G) < clus, -1, 1))
   evaluated$BIC_N <- ifelse(which.min(res$BIC_N) == clus, 0, ifelse(which.min(res$BIC_N) < clus, -1, 1))
   evaluated$AIC   <- ifelse(which.min(res$AIC)   == clus, 0, ifelse(which.min(res$AIC)   < clus, -1, 1))
   evaluated$AIC3  <- ifelse(which.min(res$AIC3)  == clus, 0, ifelse(which.min(res$AIC3)  < clus, -1, 1))
   evaluated$ICL   <- ifelse(which.min(res$ICL)   == clus, 0, ifelse(which.min(res$ICL)   < clus, -1, 1))
   
-  evaluated$Chull_fac <- ifelse(which.max(res$Chull_fac) == clus, 0, ifelse(which.min(res$Chull_fac) < clus, -1, 1))
+  evaluated$Chull_fac <- ifelse(all(is.na(res$Chull_fac)), NA, ifelse(which.max(res$Chull_fac) == clus, 0, ifelse(which.min(res$Chull_fac) < clus, -1, 1)))
   evaluated$BIC_G_fac <- ifelse(which.min(res$BIC_G_fac) == clus, 0, ifelse(which.min(res$BIC_G_fac) < clus, -1, 1))
   evaluated$BIC_N_fac <- ifelse(which.min(res$BIC_N_fac) == clus, 0, ifelse(which.min(res$BIC_N_fac) < clus, -1, 1))
   evaluated$AIC_fac   <- ifelse(which.min(res$AIC_fac)   == clus, 0, ifelse(which.min(res$AIC_fac)   < clus, -1, 1))

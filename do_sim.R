@@ -118,7 +118,7 @@ do_sim <- function(Design, RowDesign, K){
     attempts <- 10
     for(j in 1:attempts){
       # Seed will change if there is an error
-      results <- genDat_analysis(seed = (RowDesign * k * j), Design = Design, RowDesign = RowDesign, k = k)
+      ctimes <- system.time(results <- genDat_analysis(seed = (RowDesign * k * j), Design = Design, RowDesign = RowDesign, k = k)) 
       if(!is.null(results)){
         # If there was no error, break the loop and continue
         break
@@ -126,6 +126,7 @@ do_sim <- function(Design, RowDesign, K){
     }
     
     # Save results if necessary
+    results <- results$Overview
     save(results, file = paste("Fit/Fit", "Row", RowDesign, "Rep", k, "-", j, ".Rdata" , sep =""))
     
     # ---------------------------------------------------------------

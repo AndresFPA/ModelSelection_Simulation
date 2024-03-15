@@ -45,8 +45,8 @@ library(matrixcalc)
 
 DataGeneration <- function(model, nclus, ngroups, N_g,
                            reg_coeff, balance, sd,
-                           reliability = "high", NonInvSize = 0, # The factors below are fixed in this simulation
-                           NonInvItems = 2, NonInvG = 0, NonInvType = "random",
+                           reliability = "high", NonInvSize = 0.4, # The factors below are fixed in this simulation
+                           NonInvItems = 2, NonInvG = 0.5, NonInvType = "random",
                            ResRange = 0.2, randomVarX = T){
   
   # Get number of variables
@@ -151,13 +151,13 @@ DataGeneration <- function(model, nclus, ngroups, N_g,
     
     # Insert the group-and-cluster-specific parts
     # For the endogenous variances, start from the total var (endog_var) and subtract the explained variance by the regression
-    psi_g[endog1, endog1, g] <- endo_var1[g] - ((B2[GperK[g]]^2 * exog_var1[g]) + 
-                                                  (B3[GperK[g]]^2 * exog_var2[g]) + 
-                                                  (2 * B2[GperK[g]] * B3[GperK[g]] * exog_cov[g])) 
+    psi_g[endog1, endog1, g] <- endo_var1[g] - ((B2[g]^2 * exog_var1[g]) + 
+                                                  (B3[g]^2 * exog_var2[g]) + 
+                                                  (2 * B2[g] * B3[g] * exog_cov[g])) 
     
-    psi_g[endog2, endog2, g] <- endo_var2[g] - ((B1[GperK[g]]^2 * exog_var1[g]) + 
-                                                  (B4[GperK[g]]^2 * endo_var1[g]) + 
-                                                  (2 * B1[GperK[g]] * B4[GperK[g]] * ((B2[GperK[g]] * exog_var1[g]) + (B3[GperK[g]] * exog_cov[g])))) 
+    psi_g[endog2, endog2, g] <- endo_var2[g] - ((B1[g]^2 * exog_var1[g]) + 
+                                                  (B4[g]^2 * endo_var1[g]) + 
+                                                  (2 * B1[g] * B4[g] * ((B2[g] * exog_var1[g]) + (B3[g] * exog_cov[g])))) 
   }
   
   # Create the covariance matrix of the factors (phi in the paper)
