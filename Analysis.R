@@ -181,9 +181,6 @@ plot <- ggplot(data = a1, aes(x = sd, y = Measure)) + facet_grid(nclus~N_g) +
 
 plot
 
-
-
-
 # TABLES
 K_res   <- count_results(data = Results_final, by = c("nclus"), type = "relative")   %>% select(nclus:ICL)
 N_res   <- count_results(data = Results_final, by = c("N_g"), type = "relative")     %>% select(N_g:ICL)
@@ -191,6 +188,7 @@ G_res   <- count_results(data = Results_final, by = c("ngroups"), type = "relati
 B_res   <- count_results(data = Results_final, by = c("coeff"), type = "relative")   %>% select(coeff:ICL)
 Bal_res <- count_results(data = Results_final, by = c("balance"), type = "relative") %>% select(balance:ICL)
 sd_res  <- count_results(data = Results_final, by = c("sd"), type = "relative")      %>% select(sd:ICL)
+to_res  <- count_results(data = Results_final, by = "total", type = "relative")      %>% select(result:ICL)
 
 K_res   <- K_res %>% 
   pivot_longer(cols = -c(nclus, result), names_to = "metric", values_to = "value") %>%
@@ -216,11 +214,19 @@ sd_res  <- sd_res %>%
   pivot_longer(cols = -c(sd, result), names_to = "metric", values_to = "value") %>%
   pivot_wider(names_from = sd, values_from = value, names_prefix = "sd") %>% 
   relocate(metric) %>% arrange(metric) %>% select(contains("sd"))
+to_res  <- to_res %>% 
+  pivot_longer(cols = -c(result), names_to = "metric", values_to = "value") %>%
+  relocate(metric) %>% arrange(metric) %>% select(value)
 
-final <- cbind(K_res, N_res, G_res, B_res, Bal_res, sd_res)
-xtable(final)
+final <- cbind(K_res, N_res, G_res, B_res, Bal_res, sd_res, to_res)
 
-count_results(data = Results_final, by = "total", type = "relative") %>% select(result:ICL)
+# Add totals per column
+total_col <- cbind("total", final %>% group_by(result) %>% summarise(across(where(is.numeric), mean, na.rm = TRUE)))
+colnames(total_col)[1] <- "metric"; colnames(total_col)[ncol(total_col)] <- "value"
+final <- rbind(final, total_col)
+print(xtable(final), include.rownames=FALSE)
+
+
 
 ####################################################################################################
 ######################################## COR fARI - RMSE ###########################################
