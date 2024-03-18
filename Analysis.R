@@ -169,14 +169,19 @@ plot2 <- ggplot(data = a2, aes(x = Measure, y = Value)) + facet_grid(~sd) +
 ggarrange(plotlist = list(plot1, plot2), common.legend = T, legend = "bottom", nrow = 1)
 
 # HEATMAP
-a <- count_results(data = Results_final, by = c("sd", "N_g", "nclus"), type = "relative") %>% filter(result == "Correct")
+a <- count_results(data = Results_final, by = c("sd", "nclus"), type = "relative") %>% filter(result == "Correct")
 
-a1 <- a %>% dplyr::select(N_g, sd, nclus, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
+a1 <- a %>% dplyr::select(sd, nclus, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
 
-plot <- ggplot(data = a1, aes(x = sd, y = Measure)) + facet_grid(nclus~N_g) +
-  geom_tile(aes(fill = Value)) + geom_text(aes(label = Value)) + 
+a1$Measure <- factor(a1$Measure, levels = c("BIC_N", "ICL", "BIC_G", "AIC3", "AIC", "Chull"))
+
+plot <- ggplot(data = a1, aes(x = sd, y = Measure)) + facet_grid(~nclus) +
+  geom_tile(aes(fill = Value)) + geom_text(aes(label = Value), size = 3.2) + 
   scale_fill_gradient(low = "yellow", high = "red") + 
-  scale_x_continuous(sec.axis = sec_axis(~ . , name = "Sample Size", breaks = NULL, labels = NULL)) # +
+  scale_x_continuous(sec.axis = sec_axis(~ . , name = "Number of clusters", breaks = NULL, labels = NULL)) +
+  labs(x = expression("Within-cluster differences (" * sigma[beta] * ")"),  # Combines text with Greek letter, no space
+       y = expression("Model Selection measure")) 
+  # +
   # scale_y_discrete(sec.axis = sec_axis(~ . , name = "Number of clusters", breaks = NULL, labels = NULL))
 
 plot
