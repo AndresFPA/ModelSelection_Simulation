@@ -231,7 +231,35 @@ colnames(total_col)[1] <- "metric"; colnames(total_col)[ncol(total_col)] <- "val
 final <- rbind(final, total_col)
 print(xtable(final), include.rownames=FALSE)
 
+####################################################################################################
+############################################### ARI ################################################
+####################################################################################################
+# Load a second Results_final
+ARI_res <- Results_final %>% dplyr::select(Condition:sd)
 
+# Modify for the ARI results
+ARI_res$ARI <- NA; ARI_res$CC <- NA
+
+# Fill in the matrix with all results
+ncond <- unique(ARI_res$Condition) # How many conditions?
+K <- length(unique(ARI_res$Replication)) # How many replications?
+
+for (i in ncond) {
+  test <- NA
+  test <- try(load(paste0("ResultRowARI", i, ".Rdata")))
+  if(!c(class(test) == "try-error")){
+    ARI_res[(K*(i-1)+1):(i*K), 9:10] <- ResultsRowARI
+  }
+}
+
+Results_final$ARI <- ARI_res$ARI
+
+Results_final %>% group_by(Chull) %>% summarise(across(ARI, mean))
+Results_final %>% group_by(AIC)   %>% summarise(across(ARI, mean))
+Results_final %>% group_by(AIC3)  %>% summarise(across(ARI, mean))
+Results_final %>% group_by(BIC_G) %>% summarise(across(ARI, mean))
+Results_final %>% group_by(BIC_N) %>% summarise(across(ARI, mean))
+Results_final %>% group_by(ICL)   %>% summarise(across(ARI, mean))
 
 ####################################################################################################
 ######################################## COR fARI - RMSE ###########################################
