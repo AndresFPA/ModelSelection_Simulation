@@ -139,34 +139,34 @@ Results_final %>% group_by(coeff) %>% summarise(across(entropyR2, mean))
 Results_final %>% group_by(balance) %>% summarise(across(entropyR2, mean))
 Results_final %>% group_by(sd) %>% summarise(across(entropyR2, mean))
 
-# BAR GRAPHS
-# By number of clusters
-a <- count_results(data = Results_final, by = "nclus", type = "relative") %>% filter(result == "Correct")
-
-a1 <- a %>% dplyr::select(nclus, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
-a2 <- a %>% dplyr::select(nclus, Chull_fac:ICL_fac) %>% pivot_longer(cols = Chull_fac:ICL_fac, names_to = "Measure", values_to = "Value")
-
-plot1 <- ggplot(data = a1, aes(x = Measure, y = Value)) + facet_grid(~nclus) +  
-  geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 4)
-
-plot2 <- ggplot(data = a2, aes(x = Measure, y = Value)) + facet_grid(~nclus) +  
-  geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 4)
-
-ggarrange(plotlist = list(plot1, plot2), common.legend = T, legend = "bottom", nrow = 1)
-
-# By sd
-a <- count_results(data = Results_final, by = "sd", type = "relative") %>% filter(result == "Correct")
-
-a1 <- a %>% dplyr::select(sd, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
-a2 <- a %>% dplyr::select(sd, Chull_fac:ICL_fac) %>% pivot_longer(cols = Chull_fac:ICL_fac, names_to = "Measure", values_to = "Value")
-
-plot1 <- ggplot(data = a1, aes(x = Measure, y = Value)) + facet_grid(~sd) +  
-  geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 3)
-
-plot2 <- ggplot(data = a2, aes(x = Measure, y = Value)) + facet_grid(~sd) +  
-  geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 3)
-
-ggarrange(plotlist = list(plot1, plot2), common.legend = T, legend = "bottom", nrow = 1)
+# # BAR GRAPHS
+# # By number of clusters
+# a <- count_results(data = Results_final, by = "nclus", type = "relative") %>% filter(result == "Correct")
+# 
+# a1 <- a %>% dplyr::select(nclus, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
+# a2 <- a %>% dplyr::select(nclus, Chull_fac:ICL_fac) %>% pivot_longer(cols = Chull_fac:ICL_fac, names_to = "Measure", values_to = "Value")
+# 
+# plot1 <- ggplot(data = a1, aes(x = Measure, y = Value)) + facet_grid(~nclus) +  
+#   geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 4)
+# 
+# plot2 <- ggplot(data = a2, aes(x = Measure, y = Value)) + facet_grid(~nclus) +  
+#   geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 4)
+# 
+# ggarrange(plotlist = list(plot1, plot2), common.legend = T, legend = "bottom", nrow = 1)
+# 
+# # By sd
+# a <- count_results(data = Results_final, by = "sd", type = "relative") %>% filter(result == "Correct")
+# 
+# a1 <- a %>% dplyr::select(sd, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
+# a2 <- a %>% dplyr::select(sd, Chull_fac:ICL_fac) %>% pivot_longer(cols = Chull_fac:ICL_fac, names_to = "Measure", values_to = "Value")
+# 
+# plot1 <- ggplot(data = a1, aes(x = Measure, y = Value)) + facet_grid(~sd) +  
+#   geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 3)
+# 
+# plot2 <- ggplot(data = a2, aes(x = Measure, y = Value)) + facet_grid(~sd) +  
+#   geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 3)
+# 
+# ggarrange(plotlist = list(plot1, plot2), common.legend = T, legend = "bottom", nrow = 1)
 
 # HEATMAP
 a <- count_results(data = Results_final, by = c("sd", "nclus"), type = "relative") %>% filter(result == "Correct")
@@ -254,12 +254,16 @@ for (i in ncond) {
 
 Results_final$ARI <- ARI_res$ARI
 
-Results_final %>% group_by(Chull) %>% summarise(across(ARI, mean))
-Results_final %>% group_by(AIC)   %>% summarise(across(ARI, mean))
-Results_final %>% group_by(AIC3)  %>% summarise(across(ARI, mean))
-Results_final %>% group_by(BIC_G) %>% summarise(across(ARI, mean))
-Results_final %>% group_by(BIC_N) %>% summarise(across(ARI, mean))
-Results_final %>% group_by(ICL)   %>% summarise(across(ARI, mean))
+final_ARI <- cbind(
+  Results_final %>% group_by(Chull) %>% summarise(across(ARI, mean)) %>% rename(Result = Chull, Chull = ARI) %>% drop_na(),
+  Results_final %>% group_by(AIC)   %>% summarise(across(ARI, mean)) %>% rename(Result = AIC,   AIC   = ARI) %>% select(AIC),
+  Results_final %>% group_by(AIC3)  %>% summarise(across(ARI, mean)) %>% rename(Result = AIC3,  AIC3  = ARI) %>% select(AIC3),
+  Results_final %>% group_by(BIC_G) %>% summarise(across(ARI, mean)) %>% rename(Result = BIC_G, BIC_G = ARI) %>% select(BIC_G),
+  Results_final %>% group_by(BIC_N) %>% summarise(across(ARI, mean)) %>% rename(Result = BIC_N, BIC_N = ARI) %>% select(BIC_N),
+  Results_final %>% group_by(ICL)   %>% summarise(across(ARI, mean)) %>% rename(Result = ICL,   ICL   = ARI) %>% select(ICL)  
+)
+
+final_ARI %>% select(Result, AIC, AIC3, BIC_G, BIC_N, Chull, ICL) %>% xtable() %>% print(., include.rownames=FALSE)
 
 ####################################################################################################
 ######################################## COR fARI - RMSE ###########################################

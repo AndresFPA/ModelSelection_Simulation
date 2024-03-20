@@ -58,12 +58,13 @@ rownames(design) <- seq_len(nrow(design))
 
 # Run mini "sim"
 R2 <- vector(mode = "list", length = 72)
+K <- 300
 
 set.seed(1)
 for(i in 1:72){
   print(i)
-  R2[[i]] <- numeric(200)
-  for(k in 1:200){
+  R2[[i]] <- numeric(K)
+  for(k in 1:K){
     print(k)
     R2[[i]][k] <- PopR2Entropy(model      = model, 
                                step1model = S1, 
@@ -78,7 +79,7 @@ for(i in 1:72){
 
 mean(R2)
 
-lapply(X = R2, FUN = mean)
+design$R2 <- unlist(lapply(X = R2, FUN = mean))
 
 summary(unlist(lapply(X = R2, FUN = mean)))
 
