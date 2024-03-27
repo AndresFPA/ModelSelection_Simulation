@@ -139,48 +139,25 @@ Results_final %>% group_by(coeff) %>% summarise(across(entropyR2, mean))
 Results_final %>% group_by(balance) %>% summarise(across(entropyR2, mean))
 Results_final %>% group_by(sd) %>% summarise(across(entropyR2, mean))
 
-# # BAR GRAPHS
-# # By number of clusters
-# a <- count_results(data = Results_final, by = "nclus", type = "relative") %>% filter(result == "Correct")
-# 
-# a1 <- a %>% dplyr::select(nclus, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
-# a2 <- a %>% dplyr::select(nclus, Chull_fac:ICL_fac) %>% pivot_longer(cols = Chull_fac:ICL_fac, names_to = "Measure", values_to = "Value")
-# 
-# plot1 <- ggplot(data = a1, aes(x = Measure, y = Value)) + facet_grid(~nclus) +  
-#   geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 4)
-# 
-# plot2 <- ggplot(data = a2, aes(x = Measure, y = Value)) + facet_grid(~nclus) +  
-#   geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 4)
-# 
-# ggarrange(plotlist = list(plot1, plot2), common.legend = T, legend = "bottom", nrow = 1)
-# 
-# # By sd
-# a <- count_results(data = Results_final, by = "sd", type = "relative") %>% filter(result == "Correct")
-# 
-# a1 <- a %>% dplyr::select(sd, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
-# a2 <- a %>% dplyr::select(sd, Chull_fac:ICL_fac) %>% pivot_longer(cols = Chull_fac:ICL_fac, names_to = "Measure", values_to = "Value")
-# 
-# plot1 <- ggplot(data = a1, aes(x = Measure, y = Value)) + facet_grid(~sd) +  
-#   geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 3)
-# 
-# plot2 <- ggplot(data = a2, aes(x = Measure, y = Value)) + facet_grid(~sd) +  
-#   geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 3)
-# 
-# ggarrange(plotlist = list(plot1, plot2), common.legend = T, legend = "bottom", nrow = 1)
-
 # HEATMAP
 a <- count_results(data = Results_final, by = c("sd", "nclus"), type = "relative") %>% filter(result == "Correct")
 
-a1 <- a %>% dplyr::select(sd, nclus, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
+a1 <- a %>% dplyr::select(sd, nclus, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Proportion")
 
 a1$Measure <- factor(a1$Measure, levels = c("BIC_N", "ICL", "BIC_G", "AIC3", "AIC", "Chull"))
 
 plot <- ggplot(data = a1, aes(x = sd, y = Measure)) + facet_grid(~nclus) +
-  geom_tile(aes(fill = Value)) + geom_text(aes(label = Value), size = 3.2) + 
-  scale_fill_gradient(low = "yellow", high = "red") + 
+  geom_tile(aes(fill = Proportion)) + geom_text(aes(label = Proportion), size = 3.2) + 
+  scale_fill_gradient(low = "greenyellow", high = "green4") + 
   scale_x_continuous(sec.axis = sec_axis(~ . , name = "Number of clusters", breaks = NULL, labels = NULL)) +
   labs(x = expression("Within-cluster differences (" * sigma[beta] * ")"),  # Combines text with Greek letter, no space
-       y = expression("Model Selection measure")) 
+       y = expression("Model Selection measure")) +
+  scale_y_discrete(labels = c("Chull" = "CHull",
+                              "AIC" = "AIC",
+                              "AIC3" = expression(AIC[3]),
+                              "BIC_G" = expression(BIC[G]),
+                              "ICL" = "ICL",
+                              "BIC_N" = expression(BIC[N])))
   # +
   # scale_y_discrete(sec.axis = sec_axis(~ . , name = "Number of clusters", breaks = NULL, labels = NULL))
 
@@ -265,22 +242,40 @@ final_ARI <- cbind(
 
 final_ARI %>% select(Result, AIC, AIC3, BIC_G, BIC_N, Chull, ICL) %>% xtable() %>% print(., include.rownames=FALSE)
 
-####################################################################################################
-######################################## COR fARI - RMSE ###########################################
-####################################################################################################
-
-# Total correlations
-Results_final %>% select(fARI, RMSE_B1:RMSE_B4) %>% cor()
-
-# Correlation depending on the number of clusters
-Results_final %>% filter(nclus == 2) %>% select(fARI, RMSE_B1:RMSE_B4) %>% cor()
-Results_final %>% filter(nclus == 4) %>% select(fARI, RMSE_B1:RMSE_B4) %>% cor()
 
 
 
 
 
 
+# # BAR GRAPHS
+# # By number of clusters
+# a <- count_results(data = Results_final, by = "nclus", type = "relative") %>% filter(result == "Correct")
+# 
+# a1 <- a %>% dplyr::select(nclus, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
+# a2 <- a %>% dplyr::select(nclus, Chull_fac:ICL_fac) %>% pivot_longer(cols = Chull_fac:ICL_fac, names_to = "Measure", values_to = "Value")
+# 
+# plot1 <- ggplot(data = a1, aes(x = Measure, y = Value)) + facet_grid(~nclus) +  
+#   geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 4)
+# 
+# plot2 <- ggplot(data = a2, aes(x = Measure, y = Value)) + facet_grid(~nclus) +  
+#   geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 4)
+# 
+# ggarrange(plotlist = list(plot1, plot2), common.legend = T, legend = "bottom", nrow = 1)
+# 
+# # By sd
+# a <- count_results(data = Results_final, by = "sd", type = "relative") %>% filter(result == "Correct")
+# 
+# a1 <- a %>% dplyr::select(sd, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Value")
+# a2 <- a %>% dplyr::select(sd, Chull_fac:ICL_fac) %>% pivot_longer(cols = Chull_fac:ICL_fac, names_to = "Measure", values_to = "Value")
+# 
+# plot1 <- ggplot(data = a1, aes(x = Measure, y = Value)) + facet_grid(~sd) +  
+#   geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 3)
+# 
+# plot2 <- ggplot(data = a2, aes(x = Measure, y = Value)) + facet_grid(~sd) +  
+#   geom_col(aes(fill = Measure)) + scale_y_continuous(limits = c(0,1)) + geom_text(aes(label = Value), vjust = -0.5, size = 3)
+# 
+# ggarrange(plotlist = list(plot1, plot2), common.legend = T, legend = "bottom", nrow = 1)
 
 
 

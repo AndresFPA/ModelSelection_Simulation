@@ -1,4 +1,5 @@
 library(lavaan)
+library(dplyr)
 
 # Simulation Design
 # Which factors are going to be tested? For now:
@@ -77,9 +78,19 @@ for(i in 1:72){
   }
 }
 
-mean(R2)
+save(R2, file = "popR2.Rdata")
 
 design$R2 <- unlist(lapply(X = R2, FUN = mean))
+
+design %>% group_by(nclus)   %>% summarise(across(R2, mean))
+design %>% group_by(sd)      %>% summarise(across(R2, mean))
+design %>% group_by(N_g)     %>% summarise(across(R2, mean))
+design %>% group_by(nclus)   %>% summarise(across(R2, mean))
+design %>% group_by(coeff)   %>% summarise(across(R2, mean))
+design %>% group_by(balance) %>% summarise(across(R2, mean))
+
+
+design %>% group_by(sd, coeff) %>% summarise(across(R2, mean))
 
 summary(unlist(lapply(X = R2, FUN = mean)))
 
