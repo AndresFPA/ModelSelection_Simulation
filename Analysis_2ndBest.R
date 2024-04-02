@@ -1,3 +1,5 @@
+library(dplyr)
+
 # Source evaluation
 source("C:/Users/User/Documents/GitHub/ModelSelection_Simulation/evaluation.R")
 load("C:/Users/User/Documents/GitHub/ModelSelection_Simulation/Results/FinalResults.Rdata")
