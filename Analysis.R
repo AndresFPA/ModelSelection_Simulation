@@ -148,7 +148,7 @@ a1$Measure <- factor(a1$Measure, levels = c("BIC_N", "ICL", "BIC_G", "AIC3", "AI
 
 plot <- ggplot(data = a1, aes(x = sd, y = Measure)) + facet_grid(~nclus) +
   geom_tile(aes(fill = Proportion)) + geom_text(aes(label = Proportion), size = 3.2) + 
-  scale_fill_gradient(low = "greenyellow", high = "green4") + 
+  scale_fill_gradient(low = "yellow", high = "green4") + 
   scale_x_continuous(sec.axis = sec_axis(~ . , name = "Number of clusters", breaks = NULL, labels = NULL)) +
   labs(x = expression("Within-cluster differences (" * sigma[beta] * ")"),  # Combines text with Greek letter, no space
        y = expression("Model Selection measure")) +
