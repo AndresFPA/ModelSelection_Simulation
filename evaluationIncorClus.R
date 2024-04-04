@@ -12,7 +12,6 @@
 #' @param reg_coef
 #' @param reg_diff
 
-library(Rfast)
 library("combinat")
 library("FARI")
 
@@ -34,12 +33,12 @@ evaluation <- function(res, clus){
   
   evaluated$R2entropy <- res$R2entropy[[clus]]
   
-  evaluated$Chull <- ifelse(all(is.na(res$Chull)), NA, ifelse(Rfast::nth(x = res$Chull, k = 2, index.return = T, descending = T) == clus, 0, 1))
-  evaluated$BIC_G <- ifelse(Rfast::nth(x = res$BIC_G, k = 2, index.return = T) == clus, 0, 1)
-  evaluated$BIC_N <- ifelse(Rfast::nth(x = res$BIC_N, k = 2, index.return = T) == clus, 0, 1)
-  evaluated$AIC   <- ifelse(Rfast::nth(x = res$AIC, k = 2, index.return = T)   == clus, 0, 1)
-  evaluated$AIC3  <- ifelse(Rfast::nth(x = res$AIC3, k = 2, index.return = T)  == clus, 0, 1)
-  evaluated$ICL   <- ifelse(Rfast::nth(x = res$ICL, k = 2, index.return = T)   == clus, 0, 1)
+  evaluated$Chull <- ifelse(all(is.na(res$Chull)), NA, which.max(res$Chull) - clus)
+  evaluated$BIC_G <- which.min(res$BIC_G) - clus
+  evaluated$BIC_N <- which.min(res$BIC_N) - clus
+  evaluated$AIC   <- which.min(res$AIC)   - clus
+  evaluated$AIC3  <- which.min(res$AIC3)  - clus
+  evaluated$ICL   <- which.min(res$ICL)   - clus
   
   evaluated$Chull_fac <- ifelse(all(is.na(res$Chull_fac)), NA, ifelse(which.max(res$Chull_fac) == clus, 0, ifelse(which.min(res$Chull_fac) < clus, -1, 1)))
   evaluated$BIC_G_fac <- ifelse(which.min(res$BIC_G_fac) == clus, 0, ifelse(which.min(res$BIC_G_fac) < clus, -1, 1))

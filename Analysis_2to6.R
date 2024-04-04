@@ -17,8 +17,8 @@ for(i in 1:144){
     # browser()
     file <- list.files(pattern = paste0("^FitRow", i, "Rep", k, "-"), all.files = T)
     load(file)
-    Overview[1, ] <- NA
-    res  <- vector(mode = "list", length = 1); res[[1]] <- Overview; names(res) <- "Overview" # This line used only so evaluation has correct input
+    results_ov[1, ] <- NA
+    res  <- vector(mode = "list", length = 1); res[[1]] <- results_ov; names(res) <- "Overview" # This line used only so evaluation has correct input
     eval <- evaluation(res = res, clus = design[i, "nclus"])
     Results_final[ik, 1:13] <- unlist(eval)
   }
@@ -29,8 +29,8 @@ colnames(Results_final) <- c("entropyR2",
                              "Chull_fac", "BIC_G_fac", "BIC_N_fac", "AIC_fac", "AIC3_fac", "ICL_fac",
                              "Replication", "Condition")
 
-save(Results_final, file = "FinalResults2ndBest.Rdata")
-load("~/GitHub/ModelSelection_Simulation/Results/FinalResults2ndBest.Rdata")
+save(Results_final, file = "FinalResults2to6.Rdata")
+load("~/GitHub/ModelSelection_Simulation/Results/FinalResults2to6.Rdata")
 
 # Merge datasets
 design$Condition <- as.numeric(rownames(design))

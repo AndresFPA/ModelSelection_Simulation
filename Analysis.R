@@ -18,6 +18,26 @@ colnames(Results_final)[1:13] <- c("entropyR2", "Chull", "BIC_G", "BIC_N", "AIC"
                                    "Chull_fac", "BIC_G_fac", "BIC_N_fac", "AIC_fac", "AIC3_fac", "ICL_fac")
 load("design.Rdata")
 
+# Load and re-analyze the data to correct minor error in Chull evaluation (which.min instead of which.max)
+# Given that the name of the files can have "-1" or "-2" at the end, use regex to load them
+
+source("~/GitHub/ModelSelection_Simulation/evaluation.R", echo=TRUE) # Source corrected evaluation script
+setwd("~/GitHub/ModelSelection_Simulation/Results/Fit") # Set correct wd
+
+ik <- 0
+for(i in 1:144){
+  for(k in 1:50){
+    ik <- ik + 1
+    # browser()
+    file <- list.files(pattern = paste0("^FitRow", i, "Rep", k, "-"), all.files = T)
+    load(file)
+    res  <- vector(mode = "list", length = 1); res[[1]] <- results_ov; names(res) <- "Overview" # This line used only so evaluation has correct input
+    eval <- evaluation(res = res, clus = design[i, "nclus"])
+    Results_final[ik, 1:13] <- unlist(eval)
+  }
+}
+
+
 # Merge datasets
 design$Condition <- as.numeric(rownames(design))
 Results_final <- merge(x = design, y = Results_final, by = "Condition")
@@ -27,20 +47,22 @@ col_order <- c("Condition", "Replication", "nclus", "ngroups", "coeff", "N_g", "
 Results_final <- Results_final[, col_order]
 rm(col_order)
 
-# Fill in the matrix with all results
-ncond <- unique(Results_final$Condition) # How many conditions?
-K <- length(unique(Results_final$Replication)) # How many replications?
+save(Results_final, file = "FinalResCorrectModel.Rdata")
 
-for (i in ncond) {
-  test <- NA
-  test <- try(load(paste0("ResultRow", i, ".Rdata")))
-  if(!c(class(test) == "try-error")){
-    Results_final[(K*(i-1)+1):(i*K), 9:21] <- ResultsRow
-  }
-}
+# Fill in the matrix with all results
+# ncond <- unique(Results_final$Condition) # How many conditions?
+# K <- length(unique(Results_final$Replication)) # How many replications?
+
+# for (i in ncond) {
+#   test <- NA
+#   test <- try(load(paste0("ResultRow", i, ".Rdata")))
+#   if(!c(class(test) == "try-error")){
+#     Results_final[(K*(i-1)+1):(i*K), 9:21] <- ResultsRow
+#   }
+# }
 
 # remove uncomplete entries
-Results_final <- Results_final[!is.na(Results_final$BIC_G), ]
+# Results_final <- Results_final[!is.na(Results_final$BIC_G), ]
 
 # Turn NAs from Chull into FALSE input (Chull was not able to select any model)
 # apply(X = apply(X = Results_final, MARGIN = 2, FUN = is.na), MARGIN = 2, FUN = sum)
@@ -221,6 +243,8 @@ ARI_res$ARI <- NA; ARI_res$CC <- NA
 ncond <- unique(ARI_res$Condition) # How many conditions?
 K <- length(unique(ARI_res$Replication)) # How many replications?
 
+setwd("~/GitHub/ModelSelection_Simulation/Results")
+
 for (i in ncond) {
   test <- NA
   test <- try(load(paste0("ResultRowARI", i, ".Rdata")))
@@ -230,14 +254,15 @@ for (i in ncond) {
 }
 
 Results_final$ARI <- ARI_res$ARI
+mean(Results_final$ARI)
 
 final_ARI <- cbind(
-  Results_final %>% group_by(Chull) %>% summarise(across(ARI, mean)) %>% rename(Result = Chull, Chull = ARI) %>% drop_na(),
-  Results_final %>% group_by(AIC)   %>% summarise(across(ARI, mean)) %>% rename(Result = AIC,   AIC   = ARI) %>% select(AIC),
-  Results_final %>% group_by(AIC3)  %>% summarise(across(ARI, mean)) %>% rename(Result = AIC3,  AIC3  = ARI) %>% select(AIC3),
-  Results_final %>% group_by(BIC_G) %>% summarise(across(ARI, mean)) %>% rename(Result = BIC_G, BIC_G = ARI) %>% select(BIC_G),
-  Results_final %>% group_by(BIC_N) %>% summarise(across(ARI, mean)) %>% rename(Result = BIC_N, BIC_N = ARI) %>% select(BIC_N),
-  Results_final %>% group_by(ICL)   %>% summarise(across(ARI, mean)) %>% rename(Result = ICL,   ICL   = ARI) %>% select(ICL)  
+  Results_final %>% group_by(Chull) %>% summarise(across(ARI, qwraps2::mean_sd, denote_sd = "paren")) %>% rename(Result = Chull, Chull = ARI) %>% drop_na(),
+  Results_final %>% group_by(AIC)   %>% summarise(across(ARI, qwraps2::mean_sd, denote_sd = "paren")) %>% rename(Result = AIC,   AIC   = ARI) %>% select(AIC),
+  Results_final %>% group_by(AIC3)  %>% summarise(across(ARI, qwraps2::mean_sd, denote_sd = "paren")) %>% rename(Result = AIC3,  AIC3  = ARI) %>% select(AIC3),
+  Results_final %>% group_by(BIC_G) %>% summarise(across(ARI, qwraps2::mean_sd, denote_sd = "paren")) %>% rename(Result = BIC_G, BIC_G = ARI) %>% select(BIC_G),
+  Results_final %>% group_by(BIC_N) %>% summarise(across(ARI, qwraps2::mean_sd, denote_sd = "paren")) %>% rename(Result = BIC_N, BIC_N = ARI) %>% select(BIC_N),
+  Results_final %>% group_by(ICL)   %>% summarise(across(ARI, qwraps2::mean_sd, denote_sd = "paren")) %>% rename(Result = ICL,   ICL   = ARI) %>% select(ICL)  
 )
 
 final_ARI %>% select(Result, AIC, AIC3, BIC_G, BIC_N, Chull, ICL) %>% xtable() %>% print(., include.rownames=FALSE)

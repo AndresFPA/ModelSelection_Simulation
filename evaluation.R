@@ -33,7 +33,7 @@ evaluation <- function(res, clus){
   
   evaluated$R2entropy <- res$R2entropy[[clus]]
   
-  evaluated$Chull <- ifelse(all(is.na(res$Chull)), NA, ifelse(which.max(res$Chull) == clus, 0, ifelse(which.min(res$Chull) < clus, -1, 1)))
+  evaluated$Chull <- ifelse(all(is.na(res$Chull)), NA, ifelse(which.max(res$Chull) == clus, 0, ifelse(which.max(res$Chull) < clus, -1, 1)))
   evaluated$BIC_G <- ifelse(which.min(res$BIC_G) == clus, 0, ifelse(which.min(res$BIC_G) < clus, -1, 1))
   evaluated$BIC_N <- ifelse(which.min(res$BIC_N) == clus, 0, ifelse(which.min(res$BIC_N) < clus, -1, 1))
   evaluated$AIC   <- ifelse(which.min(res$AIC)   == clus, 0, ifelse(which.min(res$AIC)   < clus, -1, 1))
