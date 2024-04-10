@@ -45,8 +45,8 @@ library(matrixcalc)
 
 PopR2Entropy <- function(model, step1model, nclus, ngroups, N_g,
                          reg_coeff, balance, sd,
-                         reliability = "high", NonInvSize = 0, # The factors below are fixed in this simulation
-                         NonInvItems = 2, NonInvG = 0, NonInvType = "random",
+                         reliability = "high", NonInvSize = 0.4, # The factors below are fixed in this simulation
+                         NonInvItems = 2, NonInvG = 0.5, NonInvType = "random",
                          ResRange = 0.2, randomVarX = T){
   
   # Get number of variables

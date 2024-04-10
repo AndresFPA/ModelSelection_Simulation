@@ -49,6 +49,8 @@ rm(col_order)
 
 save(Results_final, file = "FinalResCorrectModel.Rdata")
 
+load("~/GitHub/ModelSelection_Simulation/Results/FinalResCorrectModel.Rdata")
+
 # Fill in the matrix with all results
 # ncond <- unique(Results_final$Condition) # How many conditions?
 # K <- length(unique(Results_final$Replication)) # How many replications?
@@ -85,12 +87,12 @@ save(Results_final, file = "FinalResCorrectModel.Rdata")
 #     ICL_fac   = recode(ICL_fac, "1" = "0", "TRUE" = "0", "over" = "1", "under" = "-1")
 #   )
 
-measures <- Results_final %>% dplyr::select(Chull:ICL_fac) %>% as.matrix() %>% as.data.frame()
-
-measures <- lapply(X = measures, FUN = factor, levels = c("-1", "0", "1"), labels = c("Under", "Correct", "Over")) %>% as.data.frame()
-
-Results_final[, 10:21] <- measures
-Results_final[, "entropyR2"] <- as.numeric(Results_final[, "entropyR2"])
+# measures <- Results_final %>% dplyr::select(Chull:ICL_fac) %>% as.matrix() %>% as.data.frame()
+# 
+# measures <- lapply(X = measures, FUN = factor, levels = c("-1", "0", "1"), labels = c("Under", "Correct", "Over")) %>% as.data.frame()
+# 
+# Results_final[, 10:21] <- measures
+# Results_final[, "entropyR2"] <- as.numeric(Results_final[, "entropyR2"])
 
 ####################################################################################################
 ############################ TABLES - CLUSTER AND PARAMETER RECOVERY ###############################
