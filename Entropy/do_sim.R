@@ -1,5 +1,7 @@
 library(lavaan)
-library(dplyr)
+library(fpp3)
+library(ggplot2)
+library(scales)
 
 # Simulation Design
 # Which factors are going to be tested? For now:
@@ -82,17 +84,27 @@ save(R2, file = "popR2.Rdata")
 
 design$R2 <- unlist(lapply(X = R2, FUN = mean))
 
-design %>% group_by(nclus)   %>% summarise(across(R2, mean))
-design %>% group_by(sd)      %>% summarise(across(R2, mean))
-design %>% group_by(N_g)     %>% summarise(across(R2, mean))
-design %>% group_by(nclus)   %>% summarise(across(R2, mean))
-design %>% group_by(coeff)   %>% summarise(across(R2, mean))
-design %>% group_by(balance) %>% summarise(across(R2, mean))
-
-
-design %>% group_by(sd, coeff) %>% summarise(across(R2, mean))
-
 summary(unlist(lapply(X = R2, FUN = mean)))
+
+res_nclus   <- design %>% group_by(nclus)   %>% summarise(across(R2, mean)) %>% add_column(Factor = "nclus", .before = "nclus") %>% rename("Level" = "nclus")
+res_sd      <- design %>% group_by(sd)      %>% summarise(across(R2, mean)) %>% add_column(Factor = "sd", .before = "sd") %>% rename("Level" = "sd")
+res_N_g     <- design %>% group_by(N_g)     %>% summarise(across(R2, mean)) %>% add_column(Factor = "N_g", .before = "N_g") %>% rename("Level" = "N_g")
+res_coeff   <- design %>% group_by(coeff)   %>% summarise(across(R2, mean)) %>% add_column(Factor = "coeff", .before = "coeff") %>% rename("Level" = "coeff")
+res_balance <- design %>% group_by(balance) %>% summarise(across(R2, mean)) %>% add_column(Factor = "balance", .before = "balance") %>% rename("Level" = "balance")
+
+# Table
+res_r2 <- rbind(res_N_g, res_sd, res_coeff) %>% select(Level, R2) %>% pivot_wider(., names_from = "Level", values_from = "R2")
+
+# Plot
+res_r2_long <- design %>% group_by(sd, coeff) %>% summarise(across(R2, mean))
+ggplot(data = res_r2_long, mapping = aes(x = sd, y = R2)) + 
+  facet_wrap(~coeff) + labs(x = "Within-cluster Differences", y = "R2 Entropy") +
+  geom_point(color = "green4") + 
+  geom_line(linewidth = 0.5, color = "green4") + 
+  scale_x_continuous(labels = scales::label_number(scale = 1, accuracy = 0.01),
+                     sec.axis = sec_axis(~ . , name = "Size of Regression Parameter", breaks = NULL, labels = NULL))
+
+
 
 
 
