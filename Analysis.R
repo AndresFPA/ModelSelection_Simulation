@@ -47,7 +47,7 @@ col_order <- c("Condition", "Replication", "nclus", "ngroups", "coeff", "N_g", "
 Results_final <- Results_final[, col_order]
 rm(col_order)
 
-save(Results_final, file = "FinalResCorrectModel.Rdata")
+# save(Results_final, file = "FinalResCorrectModel.Rdata")
 
 load("~/GitHub/ModelSelection_Simulation/Results/FinalResCorrectModel.Rdata")
 
