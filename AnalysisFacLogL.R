@@ -21,31 +21,31 @@ load("design.Rdata")
 # Load and re-analyze the data to correct minor error in Chull evaluation (which.min instead of which.max)
 # Given that the name of the files can have "-1" or "-2" at the end, use regex to load them
 
-source("~/GitHub/ModelSelection_Simulation/evaluation.R", echo=TRUE) # Source corrected evaluation script
-setwd("~/GitHub/ModelSelection_Simulation/Results/Fit") # Set correct wd
+# source("~/GitHub/ModelSelection_Simulation/evaluation.R", echo=TRUE) # Source corrected evaluation script
+# setwd("~/GitHub/ModelSelection_Simulation/Results/Fit") # Set correct wd
+# 
+# ik <- 0
+# for(i in 1:144){
+#   for(k in 1:50){
+#     ik <- ik + 1
+#     # browser()
+#     file <- list.files(pattern = paste0("^FitRow", i, "Rep", k, "-"), all.files = T)
+#     load(file)
+#     res  <- vector(mode = "list", length = 1); res[[1]] <- results_ov; names(res) <- "Overview" # This line used only so evaluation has correct input
+#     eval <- evaluation(res = res, clus = design[i, "nclus"])
+#     Results_final[ik, 1:13] <- unlist(eval)
+#   }
+# }
 
-ik <- 0
-for(i in 1:144){
-  for(k in 1:50){
-    ik <- ik + 1
-    # browser()
-    file <- list.files(pattern = paste0("^FitRow", i, "Rep", k, "-"), all.files = T)
-    load(file)
-    res  <- vector(mode = "list", length = 1); res[[1]] <- results_ov; names(res) <- "Overview" # This line used only so evaluation has correct input
-    eval <- evaluation(res = res, clus = design[i, "nclus"])
-    Results_final[ik, 1:13] <- unlist(eval)
-  }
-}
 
-
-# Merge datasets
-design$Condition <- as.numeric(rownames(design))
-Results_final <- merge(x = design, y = Results_final, by = "Condition")
-col_order <- c("Condition", "Replication", "nclus", "ngroups", "coeff", "N_g", "balance", "sd", 
-               "entropyR2", "Chull", "BIC_G", "BIC_N", "AIC", "AIC3", "ICL", 
-               "Chull_fac", "BIC_G_fac", "BIC_N_fac", "AIC_fac", "AIC3_fac", "ICL_fac")
-Results_final <- Results_final[, col_order]
-rm(col_order)
+# # Merge datasets
+# design$Condition <- as.numeric(rownames(design))
+# Results_final <- merge(x = design, y = Results_final, by = "Condition")
+# col_order <- c("Condition", "Replication", "nclus", "ngroups", "coeff", "N_g", "balance", "sd", 
+#                "entropyR2", "Chull", "BIC_G", "BIC_N", "AIC", "AIC3", "ICL", 
+#                "Chull_fac", "BIC_G_fac", "BIC_N_fac", "AIC_fac", "AIC3_fac", "ICL_fac")
+# Results_final <- Results_final[, col_order]
+# rm(col_order)
 
 # save(Results_final, file = "FinalResCorrectModel.Rdata")
 
