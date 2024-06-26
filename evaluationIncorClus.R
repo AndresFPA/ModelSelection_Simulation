@@ -1,6 +1,8 @@
 #' Evaluation
 #'
 #' Evaluation function to assess the performance of the model according to the simulation results. 
+#' For the "incorrect clustering" evaluation, we inspected how "bad" was our under- or over-selection. That is, if we
+#' selected the incorrect model, by how much did we miss (e.g., over-selected two clusters). 
 #'
 #' INPUT: Arguments required by the function
 #' @param beta 
