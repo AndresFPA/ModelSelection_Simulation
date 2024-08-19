@@ -1,9 +1,9 @@
 library(MASS)
 library(matrixcalc)
 
-#' DataGeneration
+#' PopR2Entropy
 #'
-#' Generates simulated data according to the manipulated conditions. 
+#' Generates simulated data according to the manipulated conditions, and computes R2 Entropy at the population level. 
 #'
 #' INPUT: Arguments required by the function
 #' @param model: full model in lavaan syntax (string).

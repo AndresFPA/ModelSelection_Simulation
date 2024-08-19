@@ -1,3 +1,7 @@
+# 2024.
+# R2 Entropy at the population level.
+# Computation is based on Code from github user daob (Oberski, 2019): https://gist.github.com/daob/c2b6d83815ddd57cde3cebfdc2c267b3
+
 library(lavaan)
 library(fpp3)
 library(ggplot2)
@@ -45,23 +49,21 @@ S2 <- '
 '
 
 # Get design matrix
-design <- expand.grid(nclus, ngroups, coeff, N_g, balance, sd, model) # , reliability, NonInvSize, ResRange,
-# NonInvItems, NonInvG, NonInvType)
+design <- expand.grid(nclus, ngroups, coeff, N_g, balance, sd, model) 
 colnames(design) <- c("nclus", "ngroups", "coeff", "N_g", "balance", "sd", "model")
-# "reliability", "NonInvSize", "ResRange", "NonInvItems", "NonInvG", "NonInvType")
 
 rownames(design) <- NULL
-rm(balance, coeff, N_g, nclus, ngroups, sd) #, NonInvG, NonInvItems, NonInvSize, reliability, ResRange)
+rm(balance, coeff, N_g, nclus, ngroups, sd) 
 
 # Remove unnecessary rows
-design <- design[design$ngroups == 24, ]
+design <- design[design$ngroups == 24, ] # We fix the sample size (G). For now, just remove repeated rows
 
 # Rename rownames
 rownames(design) <- seq_len(nrow(design))
 
 # Run mini "sim"
 R2 <- vector(mode = "list", length = 72)
-K <- 300
+K <- 300 # repetitions
 
 set.seed(1)
 for(i in 1:72){
@@ -72,7 +74,7 @@ for(i in 1:72){
     R2[[i]][k] <- PopR2Entropy(model      = model, 
                                step1model = S1, 
                                nclus      = design[i, "nclus"], 
-                               ngroups    = 192, 
+                               ngroups    = 192, # Fixed G 
                                reg_coeff  = design[i, "coeff"], 
                                N_g        = design[i, "N_g"], 
                                balance    = design[i, "balance"], 
@@ -82,10 +84,13 @@ for(i in 1:72){
 
 save(R2, file = "popR2.Rdata")
 
+# Entropy per condition
 design$R2 <- unlist(lapply(X = R2, FUN = mean))
 
+# Mean entropy
 summary(unlist(lapply(X = R2, FUN = mean)))
 
+# Mean entropy per factor and level
 res_nclus   <- design %>% group_by(nclus)   %>% summarise(across(R2, mean)) %>% add_column(Factor = "nclus", .before = "nclus") %>% rename("Level" = "nclus")
 res_sd      <- design %>% group_by(sd)      %>% summarise(across(R2, mean)) %>% add_column(Factor = "sd", .before = "sd") %>% rename("Level" = "sd")
 res_N_g     <- design %>% group_by(N_g)     %>% summarise(across(R2, mean)) %>% add_column(Factor = "N_g", .before = "N_g") %>% rename("Level" = "N_g")
