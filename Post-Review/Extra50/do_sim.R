@@ -182,7 +182,7 @@ setwd("e:/Users/perezalo/Documents/ModelSelection_Simulation/Results")
 
 # Create final results matrix 
 # Everything is multiplied by 2 because we run the model twice (including and not including Non-Inv)
-K <- 1 # Number of replications per condition
+K <- 50 # Number of replications per condition
 
 Results_final <- as.data.frame(matrix(data = NA, nrow = nrow(design)*K, ncol = 13))
 Results_final$Replication <- rep(x = 1:K, times = nrow(design))

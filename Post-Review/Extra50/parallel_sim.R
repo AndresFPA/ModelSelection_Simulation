@@ -157,10 +157,15 @@ do_sim <- function(RowDesign){
 }
 
 # Set number of replications per condition
-K <- 1 
+K <- 50
 
-# save(Results_final, file = "FinalResults.Rdata")
-# save(design, file = "design.Rdata")
+# Prepare object to save
+Results_final <- as.data.frame(matrix(data = NA, nrow = nrow(design)*K, ncol = 13))
+Results_final$Replication <- rep(x = 1:K, times = nrow(design))
+Results_final$Condition <- rep(x = 1:nrow(design), each = K)
+
+save(Results_final, file = "FinalResults.Rdata")
+save(design, file = "design.Rdata")
 
 # ###################################################################### #
 # ######################## START PARALLELIZATION ####################### #

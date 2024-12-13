@@ -10,7 +10,8 @@ library(ggthemes)
 # CairoWin()
 
 # Set wd
-setwd("~/GitHub/ModelSelection_Simulation/Post-Review/K1/Results")
+# setwd("C:/Users/perezalo/OneDrive - Tilburg University/1. Papers/Paper 2/Methodology (Journal)/Review/Simulation results/ModelSelection_Simulation/Post-Review/K1/Results")
+setwd("C:/Users/User/OneDrive - Tilburg University/1. Papers/Paper 2/Methodology (Journal)/Review/Simulation results/ModelSelection_Simulation/Post-Review/K1/Results")
 
 # Load empty final results matrix
 load("FinalResults.Rdata")
@@ -118,14 +119,16 @@ Results_final %>% group_by(sd) %>% summarise(across(entropyR2, mean))
 # HEATMAP
 a <- count_results(data = Results_final, by = c("sd", "N_g"), type = "relative") %>% filter(result == "0")
 
-a1 <- a %>% dplyr::select(sd, N_g, Chull:ICL) %>% pivot_longer(cols = Chull:ICL, names_to = "Measure", values_to = "Proportion")
+a1 <- a %>% dplyr::select(sd, N_g, Chull:ICL) %>% pivot_longer(cols = BIC_G:ICL, names_to = "Measure", values_to = "Proportion")
+
+a1$Proportion <- round(a1$Proportion, 3)
 
 a1$Measure <- factor(a1$Measure, levels = c("BIC_N", "ICL", "BIC_G", "AIC3", "AIC", "Chull"))
 
 plot <- ggplot(data = a1, aes(x = sd, y = Measure)) + facet_grid(~N_g) +
   geom_tile(aes(fill = Proportion)) + geom_text(aes(label = Proportion), size = 3.2) + 
   scale_fill_gradient(low = "yellow", high = "green4") + 
-  scale_x_continuous(sec.axis = sec_axis(~ . , name = "Number of clusters", breaks = NULL, labels = NULL)) +
+  scale_x_continuous(sec.axis = sec_axis(~ . , name = "Within-group sample size", breaks = NULL, labels = NULL)) +
   labs(x = expression("Within-cluster differences (" * sigma[beta] * ")"),  # Combines text with Greek letter, no space
        y = expression("Model Selection measure")) +
   scale_y_discrete(labels = c("Chull" = "CHull",
@@ -140,13 +143,13 @@ plot <- ggplot(data = a1, aes(x = sd, y = Measure)) + facet_grid(~N_g) +
 plot
 
 # TABLES
-K_res   <- count_results(data = Results_final, by = c("nclus"), type = "relative")   %>% select(nclus:ICL)
-N_res   <- count_results(data = Results_final, by = c("N_g"), type = "relative")     %>% select(N_g:ICL)
-G_res   <- count_results(data = Results_final, by = c("ngroups"), type = "relative") %>% select(ngroups:ICL)
-B_res   <- count_results(data = Results_final, by = c("coeff"), type = "relative")   %>% select(coeff:ICL)
-Bal_res <- count_results(data = Results_final, by = c("balance"), type = "relative") %>% select(balance:ICL)
-sd_res  <- count_results(data = Results_final, by = c("sd"), type = "relative")      %>% select(sd:ICL)
-to_res  <- count_results(data = Results_final, by = "total", type = "relative")      %>% select(result:ICL)
+K_res   <- count_results(data = Results_final, by = c("nclus"), type = "relative")   %>% select(nclus:ICL, -Chull)
+N_res   <- count_results(data = Results_final, by = c("N_g"), type = "relative")     %>% select(N_g:ICL, -Chull)
+G_res   <- count_results(data = Results_final, by = c("ngroups"), type = "relative") %>% select(ngroups:ICL, -Chull)
+B_res   <- count_results(data = Results_final, by = c("coeff"), type = "relative")   %>% select(coeff:ICL, -Chull)
+Bal_res <- count_results(data = Results_final, by = c("balance"), type = "relative") %>% select(balance:ICL, -Chull)
+sd_res  <- count_results(data = Results_final, by = c("sd"), type = "relative")      %>% select(sd:ICL, -Chull)
+to_res  <- count_results(data = Results_final, by = "total", type = "relative")      %>% select(result:ICL, -Chull)
 
 K_res   <- K_res %>% 
   pivot_longer(cols = -c(nclus, result), names_to = "metric", values_to = "value") %>%
@@ -182,6 +185,7 @@ final <- cbind(K_res, N_res, G_res, B_res, Bal_res, sd_res, to_res)
 total_col <- cbind("total", final %>% group_by(result) %>% summarise(across(where(is.numeric), mean, na.rm = TRUE)))
 colnames(total_col)[1] <- "metric"; colnames(total_col)[ncol(total_col)] <- "value"
 final <- rbind(final, total_col)
+final <- final %>% select(metric, result, N_g50, N_g100, N_g200, ngroups24, ngroups48, sd0, sd0.05, sd0.1, value) %>% filter(result != -1)
 print(xtable(final), include.rownames=FALSE)
 
 ####################################################################################################
