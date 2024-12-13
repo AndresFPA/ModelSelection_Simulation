@@ -30,3 +30,5 @@ It contains the prior entropy analysis used to know the cluster separability of 
 
 ## Results 
 It contains the results of each one of the conditions evaluated in the simulation.
+
+NOTE: not all results are included in this repository due to storage limits. Specifically, the models' fit is locally stored (for replication purposes) but not in Github. 
