@@ -225,7 +225,7 @@ DataGeneration <- function(model, nclus, ngroups, N_g,
   # For now, mu would be 0 as we are only interested in centered variables
   SimData <- c()
   for(g in 1:ngroups){
-    tmp <- mvrnorm(n = N_g, mu = rep(0, p), Sigma = Sigma[, , g], empirical = T)
+    tmp <- mvrnorm(n = N_g, mu = rep(0, p), Sigma = Sigma[, , g], empirical = F)
     SimData <- rbind(SimData, tmp)
   }
   
